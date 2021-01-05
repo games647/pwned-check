@@ -10,7 +10,7 @@ edition = "2018"
 ring = "0.16"
 
 # CSV file reading
-csv = "1.1.5"
+csv = "1.1"
 
 # Thread communication by channel - supports more things than std
 crossbeam-channel = "0.5"
@@ -45,7 +45,7 @@ assert_matches = "1.4"
 criterion = "0.3"
 
 # Random generator
-rand = "0.8.0"
+rand = "0.8"
 
 [[bench]]
 name = "hashing"
