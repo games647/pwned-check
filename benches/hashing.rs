@@ -33,13 +33,13 @@ fn hash_bytes_channel(data_rec: &Receiver<&Vec<u8>>) -> Vec<Digest> {
     let (hash_send, hash_rec): (Sender<Digest>, Receiver<Digest>) = bounded(data_rec.len());
 
     // end is exclusive so start with 0
-    thread::scope(|s| {
+    thread::scope(|scope| {
         for _ in 0..num_cpus::get() {
             let local_data_rec = data_rec.clone();
             let local_hash_send = hash_send.clone();
-            s.spawn(move |_| {
+            scope.spawn(move |_| {
                 for input in local_data_rec {
-                    local_hash_send.send(hash_func(&input));
+                    local_hash_send.send(hash_func(&input)).unwrap();
                 }
 
                 // drop it explicitly so we could notice the done signal
@@ -109,7 +109,7 @@ fn hash_benchmark(c: &mut Criterion) {
             // do not measure filling the buffer in comparison to others
             let (data_send, data_rec) = bounded(size);
             for d in size_data {
-                data_send.send(d);
+                data_send.send(d).unwrap();
             }
 
             // disconnect sender
