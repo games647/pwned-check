@@ -44,7 +44,7 @@ pub fn collect_hashes(password_reader: csv::Reader<File>) {
     drop(done);
 
     // read passwords on the current thread and wait until the receivers are finished
-    read_passwords(tx, password_reader);
+    read_passwords(tx, password_reader).unwrap();
 
     // detect when all done channels are dropped this loop breaks
     loop {
