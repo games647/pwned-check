@@ -6,8 +6,8 @@ Small application to scan exported passwords from chromium or FireFox against th
 [haveibeenpwned](https://haveibeenpwned.com) in order to verify if any password is exposed.
 
 The exported passwords are read and hashed in parallel. The resulting hashes are then compared to the database. Current
-implementation is only targeted for personal use. This means that we expect only single iterations through the
-database. For multiple searches (like a online service) an intermediate index or
+implementation is only targeted for personal use. This means that we expect only single iterations through the database.
+For multiple searches (like an online service) an intermediate index or
 [bloom filter](https://github.com/bertrand-maujean/ihbpwbf) would improve performance greatly.
 
 This project is also intended for learning Rust (incl. parallelism with channel communication) and its ecosystem.
@@ -28,17 +28,17 @@ Feedback appreciated.
 * Optimize searching in txt file
 * Thread scope
 * Benchmark - Criterion
-  * Multi-Threaded SHA-1 vs Single
-  * Multi Threaded file reading (Consumer) vs No Copy 
+    * Multi-Threaded SHA-1 vs Single
+    * Multi Threaded file reading (Consumer) vs No Copy
 * Properly structure it using error objects (removing `unwrap`)
 * Read as ASCII not UTF-8
 
 ## Password recommendations
 
 * Use unique passwords for each account
-   * A hacked account or website won't impact the accounts from other sites
+    * A hacked account or website won't impact the accounts from other sites
 * Use automatically generated passwords
-   * A Password manager is your friend here
+    * A Password manager is your friend here
 
 ## Installation
 
@@ -50,16 +50,16 @@ Then you can find the executable in the `target/release` directory
 
 ## Usage
 
-1. Download the database from https://haveibeenpwned.com/Passwords (Torrent recommended for reduced load).
-   This tool expects the list to be sorted by hash for better efficiency and to have only SHA-1 hashes.
+1. Download the database from https://haveibeenpwned.com/Passwords (Torrent recommended for reduced load). This tool
+   expects the list to be sorted by hash for better efficiency and to have only SHA-1 hashes.
 2. Unpack the downloaded file
-2. Export your existing passwords somewhere safe. **Note**: A persistent storage isn't a good idea, because
-the file could be restored even if deleted. You could store it in memory (ex: Linux in /dev/shm) and delete it later.
-   * FireFox: Open `about:logins` and click the three `horizontal` dots. There you can export logins.
-   * Chromium: Open `chrome://settings/passwords` and click the three `vertical` dots on the right side to export it
+2. Export your existing passwords somewhere safe. **Note**: A persistent storage isn't a good idea, because the file
+   could be restored even if deleted. You could store it in memory (ex: Linux in /dev/shm) and delete it later.
+    * FireFox: Open `about:logins` and click the three `horizontal` dots. There you can export logins.
+    * Chromium: Open `chrome://settings/passwords` and click the three `vertical` dots on the right side to export it
 3. Run the executable of this project with the following usage:
 
->pwned-check <EXPORTED_CSV> <DOWNLOADED_HASH_TXT> [-v]
+> pwned-check <EXPORTED_CSV> <DOWNLOADED_HASH_TXT> [-v]
 
 ## Learned
 
@@ -70,13 +70,13 @@ the file could be restored even if deleted. You could store it in memory (ex: Li
 * Rust gives you so much flexible to even use the read BUFFER if you guarantee its lifetime
 * Rust performs many in-place operations without allocating
 * `parse` convert easily types (String -> integer) or even errors to others
-* Result objects 
-   * Can be very easily returned early using `?`
-   * Easy matching on the source of error (i.e. Integer parsing error because of X)
-       * Without the need to fiddling with Strings
+* Result objects
+    * Can be very easily returned early using `?`
+    * Easy matching on the source of error (i.e. Integer parsing error because of X)
+        * Without the need to fiddling with Strings
 * For loops without `&` are consuming alternative `for &i in &v`
 * Great tools
-    * Clippy (`cargo clippy`) - Like `findbugs` finds potential issue
+    * Clippy (`cargo clippy`) - Like `findbugs` finds potential issues
     * Fmt (`cargo fmt`) - Formatter
     * Check (`cargo check`) - Compile check
     * Documentation testing
@@ -103,9 +103,9 @@ https://llogiq.github.io/2017/06/01/perf-pitfalls.html
 * Performance through `cargo build --release` is huge
 * Drop string parsing if possible like csv - `ByteRecords`
 * Optimize CPU usage
-  * Keep `syscalls` to a minimum
-  * Process close to data
-  * Cache friendly usage and fewer allocations
+    * Keep `syscalls` to a minimum
+    * Process close to data
+    * Cache friendly usage and fewer allocations
 * Drop allocations or copies as much as possible
     * Re-use csv records if possible including not yet serialized data
         * Better to use read_record into an existing `StringRecord`/`ByteRecord` and then call deserialize
