@@ -30,11 +30,11 @@ impl FromStr for HashRecord {
     type Err = ParseHashError;
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
-        let comp: Vec<&str> = input.split(':').collect();
+        let mut comp = input.split(':');
 
         // do not create default if not necessary
-        let hash = comp.get(0).map(|s| s.to_string()).ok_or_else(|| InvalidFormat())?;
-        let count = comp.get(1).ok_or_else(|| InvalidFormat())?.parse()?;
+        let hash = comp.next().map(ToString::to_string).ok_or_else(InvalidFormat)?;
+        let count = comp.next().ok_or_else(InvalidFormat)?.parse()?;
 
         Ok(HashRecord { hash, count })
     }
