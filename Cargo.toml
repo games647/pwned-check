@@ -28,7 +28,7 @@ serde = { version = "1", features = ["derive"] }
 # Much faster implementation for converting byte to hex instead of using `.map(|x| format!("{:02x}", x))`
 data-encoding = "2.3"
 
-# CLI argument parsing
+# CLI argument parsing with custom selection of features similar to serde
 [dependencies.clap]
 version = "3.0.0-beta.2"
 
