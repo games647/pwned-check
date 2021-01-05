@@ -63,6 +63,10 @@ the file could be restored even if deleted. You could store it in memory (ex: Li
 
 ## Learned
 
+* Passing closures without capture (`map(do_something)`) only work if the type matches exactly
+  * `fn hash_func(x: &[u8])` can be only called if the type is a slice and not a Vec
+  * However, it works with a capture `data.iter().map(|x| do_something(x)).collect()`
+  * Alternative: `data.iter().map(Vec::as_slice).map(hash_string).collect()`
 * Rust gives you so much flexible to even use the read BUFFER if you guarantee its lifetime
 * Rust performs many in-place operations without allocating
 * `parse` convert easily types (String -> integer) or even errors to others
@@ -80,6 +84,7 @@ the file could be restored even if deleted. You could store it in memory (ex: Li
 ### Discovered optimizations
 
 https://llogiq.github.io/2017/06/01/perf-pitfalls.html
+
 * Always release
 * Buffered I/O
 * Use custom if it fits your data
@@ -91,6 +96,7 @@ https://llogiq.github.io/2017/06/01/perf-pitfalls.html
     * Ex: Mapping to a default value
 
 ???
+
 * &str instead of String
 
 * Use channels and parallel threads for computation if partitioning is possible
