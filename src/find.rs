@@ -3,17 +3,17 @@ use std::io::{BufRead, BufReader};
 use std::num::ParseIntError;
 use std::str::FromStr;
 
-use rayon::prelude::*;
-
 use crate::find::ParseHashError::*;
 
-#[derive(Debug, Eq, PartialEq)]
+// use rayon::prelude::*;
+
+#[derive(Debug)]
 struct HashRecord {
     hash: String,
     count: u32,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug)]
 enum ParseHashError {
     IntError(ParseIntError),
     InvalidFormat(),
@@ -64,6 +64,7 @@ mod test {
         let record: HashRecord = "000000005AD76BD555C1D6D771DE417A4B87E4B4:4".parse()?;
         assert_eq!(record.hash, "000000005AD76BD555C1D6D771DE417A4B87E4B4");
         assert_eq!(record.count, 4);
+
         Ok(())
     }
 
