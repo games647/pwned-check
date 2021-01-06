@@ -20,8 +20,9 @@ Feedback appreciated.
 
 ## ToDo
 
-* Threadpool
-* Chunked benchmark  
+* Thread pool
+* Use more generics like Read instead of concrete types
+* Chunked benchmark
 * Sort hashes (unstable)
 * Find hash
 * Report count + URL
@@ -42,9 +43,9 @@ Feedback appreciated.
 
 ## Installation
 
->git clone REPOSITORY_URL
+> git clone REPOSITORY_URL
 
->cargo build --release
+> cargo build --release
 
 Then you can find the executable in the `target/release` directory
 
@@ -63,10 +64,15 @@ Then you can find the executable in the `target/release` directory
 
 ## Learned
 
+* Lifetimes help to guarantee the scope of variable where you use non-copy operations
+* `FromStr` doesn't support lifetimes.
+    * Instances where you need to deserialize from a `&str` and the result uses a substring of
+    the original, an owned representation from `to_string` (implying a memory allocation) isn't always necessary.
+  * Alternative you could use `impl<'a> TryFrom<&'a str> for YOUR_TRAIT/STRUCT<'a>` for this functionality
 * Passing closures without capture (`map(do_something)`) only work if the type matches exactly
-  * `fn hash_func(x: &[u8])` can be only called if the type is a slice and not a Vec
-  * However, it works with a capture `data.iter().map(|x| do_something(x)).collect()`
-  * Alternative: `data.iter().map(Vec::as_slice).map(hash_string).collect()`
+    * `fn hash_func(x: &[u8])` can be only called if the type is a slice and not a Vec
+    * However, it works with a capture `data.iter().map(|x| do_something(x)).collect()`
+    * Alternative: `data.iter().map(Vec::as_slice).map(hash_string).collect()`
 * Rust gives you so much flexible to even use the read BUFFER if you guarantee its lifetime
 * Rust performs many in-place operations without allocating
 * `parse` convert easily types (String -> integer) or even errors to others

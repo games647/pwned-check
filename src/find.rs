@@ -1,15 +1,27 @@
+use std::convert::{TryFrom, TryInto};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::num::ParseIntError;
-use std::str::FromStr;
 
 use crate::find::ParseHashError::*;
 
 // use rayon::prelude::*;
 
+// Use &str for the hash to prevent allocations that are not necessary (borrow instead of owning).
+// Using the lifetime parameter we make sure that as long this records exist the owner of this
+// string exists too. In this scenario this struct only exists for a cleaner code.
+//
+// While reading the hash database (i.e. from file) into a bytes buffer on a per line basis,
+// we could re-use the same buffer for the hash string, because the hash is a view on a range of
+// those bytes. After comparing this record, we discard it. Therefore we no longer borrow it
+// and bytes buffer mutated to be filled with the next line.
+//
+// Using `String` would mean to perform a memory copy for each struct, so that it owns its data.
+// However then the bytes buffer and this struct could then be mutated independently. They now have
+// two different memory locations.
 #[derive(Debug)]
-struct HashRecord {
-    hash: String,
+struct HashRecord<'a> {
+    hash: &'a str,
     count: u32,
 }
 
@@ -26,42 +38,41 @@ impl From<ParseIntError> for ParseHashError {
     }
 }
 
-impl FromStr for HashRecord {
-    type Err = ParseHashError;
+impl<'a> TryFrom<&'a str> for HashRecord<'a> {
+    type Error = ParseHashError;
 
-    fn from_str(input: &str) -> Result<Self, Self::Err> {
-        let mut comp = input.split(':');
+    fn try_from(value: &'a str) -> Result<Self, Self::Error> {
+        let mut comp = value.split(':');
 
         // do not create default if not necessary
-        let hash = comp.next().map(ToString::to_string).ok_or_else(InvalidFormat)?;
+        let hash = comp.next().ok_or_else(InvalidFormat)?;
         let count = comp.next().ok_or_else(InvalidFormat)?.parse()?;
 
+        // Ok(HashRecord { hash, count })
         Ok(HashRecord { hash, count })
     }
 }
 
 pub fn find_hash(hash_file: &File) {
     let reader = BufReader::new(hash_file);
-    let v: Vec<HashRecord> = reader
-        .lines()
-        .map(|l| l.unwrap().parse().unwrap())
-        .into_iter()
-        .collect();
-
-    for line in v {
-        println!("{:?}", line);
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let record: Result<HashRecord<'_>, _> = line.as_str().try_into();
+        println!("{:?}", record);
     }
 }
 
 #[cfg(test)]
 mod test {
+    use std::convert::TryInto;
+
     use assert_matches::assert_matches;
 
     use super::*;
 
     #[test]
     fn test_parse() -> Result<(), ParseHashError> {
-        let record: HashRecord = "000000005AD76BD555C1D6D771DE417A4B87E4B4:4".parse()?;
+        let record: HashRecord<'_> = "000000005AD76BD555C1D6D771DE417A4B87E4B4:4".try_into()?;
         assert_eq!(record.hash, "000000005AD76BD555C1D6D771DE417A4B87E4B4");
         assert_eq!(record.count, 4);
 
@@ -70,7 +81,8 @@ mod test {
 
     #[test]
     fn test_number_parse_error() {
-        let result: Result<HashRecord, _> = "000000005AD76BD555C1D6D771DE417A4B87E4B4:abc".parse();
+        let line = "000000005AD76BD555C1D6D771DE417A4B87E4B4:abc";
+        let result: Result<HashRecord<'_>, _> = line.try_into();
         assert_matches!(result, Err(IntError(_)));
     }
 }
