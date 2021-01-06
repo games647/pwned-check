@@ -7,7 +7,7 @@ const HASH_KEY: &str = "hash_file";
 const VERBOSE_KEY: &str = "verbose";
 
 fn main() {
-    let matches = create_args().get_matches();
+    let matches = create_cli_options().get_matches();
 
     // unwrap is safe here, because the two arguments are required
     let passwords_file = matches.value_of_os(PASSWORD_KEY).unwrap();
@@ -24,7 +24,7 @@ fn main() {
     run(reader, hash_file);
 }
 
-fn create_args<'help>() -> App<'help> {
+fn create_cli_options<'help>() -> App<'help> {
     App::new(crate_name!())
         .about(crate_description!())
         .version(crate_version!())
@@ -62,17 +62,38 @@ mod test {
 
     #[test]
     fn test_parse() {
-        let args = vec!["pwned-check", "./xyz.txt", "abc.txt"];
-        let matches = create_args().try_get_matches_from(args);
+        let args = ["pwned-check", "./xyz.txt", "abc.txt"];
+        let matches = create_cli_options().try_get_matches_from(&args);
 
         assert!(matches.is_ok(), "CLI parse result {:?}", matches);
     }
 
     #[test]
     fn test_verbose() {
-        let args = vec!["pwned-check", "./xyz.txt", "abc.txt", "-v"];
-        let matches = create_args().try_get_matches_from(args);
+        let args = ["pwned-check", "./xyz.txt", "abc.txt", "-v"];
+        let matches = create_cli_options().try_get_matches_from(&args);
 
         assert!(matches.is_ok(), "CLI parse result {:?}", matches);
+    }
+
+    #[test]
+    fn test_failed_parse() {
+        let args = ["pwned-check", "./xyz.txt", "abc.txt", "--non-existing-flag"];
+        let matches = create_cli_options().try_get_matches_from(&args);
+
+        assert!(!matches.is_ok(), "CLI parse result {:?}", matches);
+    }
+
+    #[test]
+    fn test_missing_file() {
+        let args = ["pwned-check"];
+        let matches = create_cli_options().try_get_matches_from(&args);
+
+        assert!(!matches.is_ok(), "CLI parse result {:?}", matches);
+
+        let args = ["pwned-check", "file.txt"];
+        let matches = create_cli_options().try_get_matches_from(&args);
+
+        assert!(!matches.is_ok(), "CLI parse result {:?}", matches);
     }
 }

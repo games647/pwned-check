@@ -79,10 +79,20 @@ fn hash_pass(pass: &str) -> String {
 mod test {
     use super::*;
 
+    const HASH_EXPECTED: &str = "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d";
+
     #[test]
     fn test_hash() {
         assert_eq!(
             hash_pass("hello"),
+            HASH_EXPECTED
+        )
+    }
+
+    #[test]
+    fn test_hash_failed() {
+        assert_ne!(
+            hash_pass("fail"),
             "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d"
         )
     }
