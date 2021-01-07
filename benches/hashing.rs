@@ -2,8 +2,10 @@ use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use crossbeam_utils::thread;
 use data_encoding::HEXUPPER;
-use rand::distributions::Alphanumeric;
-use rand::prelude::*;
+use rand::{
+    distributions::Alphanumeric,
+    prelude::*
+};
 use rayon::prelude::*;
 use ring::digest::{digest, Digest, SHA1_FOR_LEGACY_USE_ONLY};
 

@@ -1,7 +1,9 @@
-use std::convert::{TryFrom, TryInto};
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::num::ParseIntError;
+use std::{
+    convert::{TryFrom, TryInto},
+    fs::File,
+    io::{BufRead, BufReader},
+    num::ParseIntError
+};
 
 use crate::find::ParseHashError::*;
 
@@ -44,11 +46,9 @@ impl<'a> TryFrom<&'a str> for HashRecord<'a> {
     fn try_from(value: &'a str) -> Result<Self, Self::Error> {
         let mut comp = value.split(':');
 
-        // do not create default if not necessary
         let hash = comp.next().ok_or_else(InvalidFormat)?;
         let count = comp.next().ok_or_else(InvalidFormat)?.parse()?;
 
-        // Ok(HashRecord { hash, count })
         Ok(HashRecord { hash, count })
     }
 }
@@ -69,6 +69,51 @@ mod test {
     use assert_matches::assert_matches;
 
     use super::*;
+
+    // implementation where the record owns the String
+    #[derive(Debug)]
+    struct HashRecordOwned {
+        hash: String,
+        count: u32,
+    }
+
+    impl TryFrom<String> for HashRecordOwned {
+        type Error = ParseHashError;
+
+        fn try_from(mut value: String) -> Result<Self, Self::Error> {
+            match value.find(':') {
+                None => Err(InvalidFormat()),
+                Some(index) => {
+                    // extract first the count, because it would get dropped later
+                    let count = value[index + 1..].parse()?;
+
+                    value.truncate(index);
+                    Ok(HashRecordOwned { hash: value, count })
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_owned() -> Result<(), ParseHashError> {
+        let record: HashRecordOwned = {
+            // here the owned String would get dropped - however it gets moved into the record
+            let droppable = "000000005AD76BD555C1D6D771DE417A4B87E4B4:4".to_string();
+            droppable.try_into()?
+        };
+
+        assert_eq!(record.hash, "000000005AD76BD555C1D6D771DE417A4B87E4B4");
+        assert_eq!(record.count, 4);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_number_parse_owned_error() {
+        let line = "000000005AD76BD555C1D6D771DE417A4B87E4B4:abc".to_string();
+        let result: Result<HashRecordOwned, _> = line.try_into();
+        assert_matches!(result, Err(IntError(_)));
+    }
 
     #[test]
     fn test_parse() -> Result<(), ParseHashError> {

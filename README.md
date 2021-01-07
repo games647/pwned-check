@@ -69,6 +69,7 @@ Then you can find the executable in the `target/release` directory
     * Instances where you need to deserialize from a `&str` and the result uses a substring of
     the original, an owned representation from `to_string` (implying a memory allocation) isn't always necessary.
   * Alternative you could use `impl<'a> TryFrom<&'a str> for YOUR_TRAIT/STRUCT<'a>` for this functionality
+  * Or consuming it with the owned `String` where you modify 
 * Passing closures without capture (`map(do_something)`) only work if the type matches exactly
     * `fn hash_func(x: &[u8])` can be only called if the type is a slice and not a Vec
     * However, it works with a capture `data.iter().map(|x| do_something(x)).collect()`

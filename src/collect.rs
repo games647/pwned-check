@@ -1,11 +1,15 @@
-use std::fs::File;
-use std::thread;
+use std::{
+    fs::File,
+    thread
+};
 
-use crossbeam_channel::bounded;
-use crossbeam_channel::Receiver;
-use crossbeam_channel::select;
-use crossbeam_channel::Sender;
-use crossbeam_channel::SendError;
+use crossbeam_channel::{
+    bounded,
+    Receiver,
+    select,
+    Sender,
+    SendError
+};
 use ring::digest::{digest, SHA1_FOR_LEGACY_USE_ONLY};
 use serde::Deserialize;
 
