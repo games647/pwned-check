@@ -30,9 +30,11 @@ fn hash_bytes_threaded(data: &[Vec<u8>]) -> Vec<Digest> {
 }
 
 /// parallel hashing but keeping the byte representation
-fn hash_bytes_channel(data_rec: &Receiver<&Vec<u8>>) -> Vec<Digest> {
+fn hash_bytes_channel(data: &[Vec<u8>]) -> Vec<Digest> {
     // data channel (function data) with input (send) and output (rec)
-    let (hash_send, hash_rec): (Sender<Digest>, Receiver<Digest>) = bounded(data_rec.len());
+    let size = data.len();
+    let (data_send, data_rec): (Sender<&Vec<u8>>, Receiver<&Vec<u8>>) = bounded(size);
+    let (hash_send, hash_rec): (Sender<Digest>, Receiver<Digest>) = bounded(size);
 
     // end is exclusive so start with 0
     thread::scope(|scope| {
@@ -49,8 +51,13 @@ fn hash_bytes_channel(data_rec: &Receiver<&Vec<u8>>) -> Vec<Digest> {
             });
         }
 
+        for record in data {
+            data_send.send(record).unwrap();
+        }
+
         // drop the original sender - we could notice the disconnect
         drop(hash_send);
+        drop(data_send);
 
         hash_rec.iter().collect()
     }).unwrap()
@@ -108,15 +115,7 @@ fn hash_benchmark(c: &mut Criterion) {
 
         let id = BenchmarkId::new("Threaded-Channel-Bytes", size);
         group.bench_function(id, |b| {
-            // do not measure filling the buffer in comparison to others
-            let (data_send, data_rec) = bounded(size);
-            for d in size_data {
-                data_send.send(d).unwrap();
-            }
-
-            // disconnect sender
-            drop(data_send);
-            b.iter_with_large_drop(|| hash_bytes_channel(&data_rec));
+            b.iter_with_large_drop(|| hash_bytes_channel(&size_data));
         });
     }
 
