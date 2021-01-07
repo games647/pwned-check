@@ -82,6 +82,11 @@ Then you can find the executable in the `target/release` directory
     * Easy matching on the source of error (i.e. Integer parsing error because of X)
         * Without the need to fiddling with Strings
 * For loops without `&` are consuming alternative `for &i in &v`
+* `do_something(xyz: TYPE)` vs `do_something(xyz: &TYPE)`
+    * First one takes the ownership - This could be useful if the function requires ownership (like saving it) or if it
+      fully consumes the resource. Copy types like Integers will be automatically copied. It could imply better
+      performance. Otherwise, a clone needs to be issued explicitly.
+    * Second one temporarily borrows a reference to the variable until the function is finished
 * Great tools
     * Clippy (`cargo clippy`) - Like `findbugs` finds potential issues
     * Fmt (`cargo fmt`) - Formatter

@@ -49,4 +49,5 @@ rand = "0.8"
 
 [[bench]]
 name = "hashing"
+# Use criterion harness instead of our own
 harness = false
