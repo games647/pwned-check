@@ -20,11 +20,11 @@ Feedback appreciated.
 
 ## ToDo
 
+* Sort hashes (unstable)
+* Find hash
 * Thread pool
 * Use more generics like Read instead of concrete types
 * Chunked benchmark
-* Sort hashes (unstable)
-* Find hash
 * Report count + URL
 * Optimize searching in txt file
 * Thread scope
@@ -66,10 +66,10 @@ Then you can find the executable in the `target/release` directory
 
 * Lifetimes help to guarantee the scope of variable where you use non-copy operations
 * `FromStr` doesn't support lifetimes.
-    * Instances where you need to deserialize from a `&str` and the result uses a substring of
-    the original, an owned representation from `to_string` (implying a memory allocation) isn't always necessary.
-  * Alternative you could use `impl<'a> TryFrom<&'a str> for YOUR_TRAIT/STRUCT<'a>` for this functionality
-  * Or consuming it with the owned `String` where you modify 
+    * Instances where you need to deserialize from a `&str` and the result uses a substring of the original, an owned
+      representation from `to_string` (implying a memory allocation) isn't always necessary.
+    * Alternative you could use `impl<'a> TryFrom<&'a str> for YOUR_TRAIT/STRUCT<'a>` for this functionality
+    * Or consuming it with the owned `String` where you modify
 * Passing closures without capture (`map(do_something)`) only work if the type matches exactly
     * `fn hash_func(x: &[u8])` can be only called if the type is a slice and not a Vec
     * However, it works with a capture `data.iter().map(|x| do_something(x)).collect()`
@@ -92,6 +92,9 @@ Then you can find the executable in the `target/release` directory
     * Fmt (`cargo fmt`) - Formatter
     * Check (`cargo check`) - Compile check
     * Documentation testing
+* Building arrays at compile time is only possible with `const fn`, but it forbids a lot of things like for
+    * Code generation with `build.rs` is also possible, but complicated
+    * Alternative: Crates like `init_with`
 
 ### Discovered optimizations
 

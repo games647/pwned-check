@@ -1,10 +1,13 @@
+use std::convert::TryInto;
+
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use crossbeam_utils::thread;
 use data_encoding::HEXUPPER;
+use init_with::InitWith;
 use rand::{
     distributions::Alphanumeric,
-    prelude::*
+    prelude::*,
 };
 use rayon::prelude::*;
 use ring::digest::{digest, Digest, SHA1_FOR_LEGACY_USE_ONLY};
@@ -88,9 +91,9 @@ fn create_scrambled_data(size: usize) -> Vec<Vec<u8>> {
 fn hash_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("Hashing-Group");
 
-    let sizes: Vec<usize> = (1..4).map(|i| 10_usize.pow(i)).collect();
+    let sizes: [usize; 3] = <[usize; 3]>::init_with_indices(|i| 10_usize.pow(i.try_into().unwrap()));
     let data = create_scrambled_data(*sizes.last().unwrap());
-    for size in sizes {
+    for &size in &sizes {
         let size_data = &data[0..size];
 
         let id = BenchmarkId::new("Sequential", size);
