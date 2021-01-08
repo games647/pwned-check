@@ -56,7 +56,7 @@ Then you can find the executable in the `target/release` directory
 2. Unpack the downloaded file
 2. Export your existing passwords somewhere safe. **Note**: A persistent storage isn't a good idea, because the file
    could be restored even if deleted. You could store it in memory (ex: Linux in /dev/shm) and delete it later.
-    * FireFox: Open `about:logins` and click the three `horizontal` dots. There you can export logins.
+    * Firefox: Open `about:logins` and click the three `horizontal` dots. There you can export logins.
     * Chromium: Open `chrome://settings/passwords` and click the three `vertical` dots on the right side to export it
 3. Run the executable of this project with the following usage:
 
