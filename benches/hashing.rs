@@ -91,7 +91,7 @@ fn create_scrambled_data(size: usize) -> Vec<Vec<u8>> {
 fn hash_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("Hashing-Group");
 
-    let sizes: [usize; 3] = <[usize; 3]>::init_with_indices(|i| 10_usize.pow(i.try_into().unwrap()));
+    let sizes = <[usize; 3]>::init_with_indices(|i| 10_usize.pow((i + 2).try_into().unwrap()));
     let data = create_scrambled_data(*sizes.last().unwrap());
     for &size in &sizes {
         let size_data = &data[0..size];
