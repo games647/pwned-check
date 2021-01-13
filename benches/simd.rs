@@ -19,11 +19,13 @@ fn normal_equal_threaded(data: &[[u8; 32]], hay: &[u8; 32]) -> bool {
 #[cfg(target_feature = "avx")]
 fn simd_equal(data: &[[u8; 32]], hay: &[u8; 32]) -> bool {
     let hay = u8x32::from_slice_unaligned(hay);
-    data.iter()
-        .any(|x| {
-            let check = u8x32::from_slice_unaligned(x);
-            check.eq(hay).all()
-        })
+    data.iter().any(|x| u8x32::from_slice_unaligned(x).eq(hay).all())
+}
+
+#[cfg(target_feature = "avx")]
+fn simd_equal_threaded(data: &[[u8; 32]], hay: &[u8; 32]) -> bool {
+    let hay = u8x32::from_slice_unaligned(hay);
+    data.par_iter().any(|x| u8x32::from_slice_unaligned(x).eq(hay).all())
 }
 
 fn create_scrambled_data(size: usize) -> Vec<[u8; 32]> {
@@ -44,12 +46,22 @@ fn simd_benchmark(c: &mut Criterion) {
 
         let id = BenchmarkId::new("Normal", size);
         group.bench_function(id, |b| {
-            b.iter_with_large_drop(|| normal_equal(&size_data, hay));
+            b.iter_with_large_drop(|| normal_equal(&size_data, &hay));
+        });
+
+        let id = BenchmarkId::new("Threaded", size);
+        group.bench_function(id, |b| {
+            b.iter_with_large_drop(|| normal_equal_threaded(&size_data, &hay));
         });
 
         let id = BenchmarkId::new("SIMD", size);
         group.bench_function(id, |b| {
-            b.iter_with_large_drop(|| simd_equal(&size_data, hay));
+            b.iter_with_large_drop(|| simd_equal(&size_data, &hay));
+        });
+
+        let id = BenchmarkId::new("SIMD-Threaded", size);
+        group.bench_function(id, |b| {
+            b.iter_with_large_drop(|| simd_equal_threaded(&size_data, &hay));
         });
     }
 
