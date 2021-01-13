@@ -43,8 +43,7 @@ fn simd_benchmark(c: &mut Criterion) {
     let data = create_scrambled_data(*sizes.last().unwrap());
     for &size in &sizes {
         let size_data = &data[0..size];
-        let index = rand::thread_rng().gen_range(0..size);
-        let hay = size_data.get(index).unwrap();
+        let hay = rand::thread_rng().gen();
 
         let id = BenchmarkId::new("Normal", size);
         group.bench_function(id, |b| {
