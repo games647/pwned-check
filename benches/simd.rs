@@ -5,18 +5,19 @@ use std::convert::TryInto;
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use init_with::InitWith;
 use packed_simd_2::u8x32;
-use rand::{
-    prelude::*,
-    Rng,
-};
+use rand::prelude::*;
+use rayon::prelude::*;
 
-fn normal_equal(data: &[[u8; 160]], hay: &[u8; 160]) -> bool {
-    data.iter()
-        .any(|x| x.eq(hay))
+fn normal_equal(data: &[[u8; 32]], hay: &[u8; 32]) -> bool {
+    data.iter().any(|x| x.eq(hay))
+}
+
+fn normal_equal_threaded(data: &[[u8; 32]], hay: &[u8; 32]) -> bool {
+    data.par_iter().any(|x| x.eq(hay))
 }
 
 #[cfg(target_feature = "avx")]
-fn simd_equal(data: &[[u8; 160]], hay: &[u8; 160]) -> bool {
+fn simd_equal(data: &[[u8; 32]], hay: &[u8; 32]) -> bool {
     let hay = u8x32::from_slice_unaligned(hay);
     data.iter()
         .any(|x| {
@@ -25,15 +26,11 @@ fn simd_equal(data: &[[u8; 160]], hay: &[u8; 160]) -> bool {
         })
 }
 
-/// create random bytes of data with each exactly 32 characters in size
-fn create_scrambled_data(size: usize) -> Vec<[u8; 160]> {
-    (0..size)
-        .map(|_| {
-            let mut buf: [u8; 160] = [0; 160];
-            rand::thread_rng().fill_bytes(&mut buf);
-            buf
-        })
-        .collect()
+fn create_scrambled_data(size: usize) -> Vec<[u8; 32]> {
+    (0..size).map(|_| {
+        let buf: [u8; 32] = rand::thread_rng().gen();
+        buf
+    }).collect()
 }
 
 fn simd_benchmark(c: &mut Criterion) {
