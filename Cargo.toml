@@ -50,7 +50,15 @@ criterion = "0.3"
 # Random generator
 rand = "0.8"
 
+# Support for SIMD instructions
+packed_simd_2 = "0.3"
+
+# Benchmark names
 [[bench]]
 name = "hashing"
 # Use criterion harness instead of our own
+harness = false
+
+[[bench]]
+name = "simd"
 harness = false
