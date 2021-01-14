@@ -34,7 +34,7 @@ fn create_scrambled_data(size: usize) -> Vec<[u8; 32]> {
 }
 
 fn simd_benchmark(c: &mut Criterion) {
-    let mut group = c.benchmark_group("SIMD-Group");
+    let mut group = c.benchmark_group("SIMD");
 
     let sizes = <[usize; 3]>::init_with_indices(|i| 10_usize.pow((i + 2).try_into().unwrap()));
     let data = create_scrambled_data(*sizes.last().unwrap());
@@ -43,23 +43,23 @@ fn simd_benchmark(c: &mut Criterion) {
         let hay = rand::thread_rng().gen();
 
         let id = BenchmarkId::new("Normal", size);
-        group.bench_function(id, |b| {
-            b.iter(|| normal_equal(&size_data, &hay));
+        group.bench_with_input(id, &(size_data, hay), |b, (data, hay)| {
+            b.iter(|| normal_equal(data, hay));
         });
 
         let id = BenchmarkId::new("Threaded", size);
-        group.bench_function(id, |b| {
-            b.iter(|| normal_equal_threaded(&size_data, &hay));
+        group.bench_with_input(id, &(size_data, hay), |b, (data, hay)| {
+            b.iter(|| normal_equal_threaded(data, hay));
         });
 
         let id = BenchmarkId::new("SIMD", size);
-        group.bench_function(id, |b| {
-            b.iter(|| simd_equal(&size_data, &hay));
+        group.bench_with_input(id, &(size_data, hay), |b, (data, hay)| {
+            b.iter(|| simd_equal(data, hay));
         });
 
         let id = BenchmarkId::new("SIMD-Threaded", size);
-        group.bench_function(id, |b| {
-            b.iter(|| simd_equal_threaded(&size_data, &hay));
+        group.bench_with_input(id, &(size_data, hay), |b, (data, hay)| {
+            b.iter(|| simd_equal_threaded(data, hay));
         });
     }
 

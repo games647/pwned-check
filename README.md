@@ -102,11 +102,11 @@ https://llogiq.github.io/2017/06/01/perf-pitfalls.html
 
 * Always release
 * Buffered I/O
-* SIMD can easily improve performance if you're dealing with 
-  * However, they have to fit in the supported registers exactly (i.e. u8 * 32), otherwise they need to be resized
-  * Nevertheless, the performance could vary a lot depending on the compiler settings
-        * In this instance `target-cpu=native` was slower than `target-cpu=x86-64` in both SIMD and normal mode
-        * Even LTO caused a negative effect, although reducing the codegen size actually helped
+* SIMD can easily improve performance if you're dealing with
+    * However, they have to fit in the supported registers exactly (i.e. u8 * 32), otherwise they need to be resized
+    * Nevertheless, the performance could vary a lot depending on the compiler settings * In this
+      instance `target-cpu=native` was slower than `target-cpu=x86-64` in both SIMD and normal mode * Even LTO caused a
+      negative effect, although reducing the codegen size actually helped
 * Use custom if it fits your data
 * Iterate rather than index
 * Avoid collect in intermediate variables

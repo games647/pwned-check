@@ -88,8 +88,8 @@ fn create_scrambled_data(size: usize) -> Vec<Vec<u8>> {
         .collect()
 }
 
-fn hash_benchmark(c: &mut Criterion) {
-    let mut group = c.benchmark_group("Hashing-Group");
+fn hashing_benchmark(c: &mut Criterion) {
+    let mut group = c.benchmark_group("Hashing");
 
     let sizes = <[usize; 3]>::init_with_indices(|i| 10_usize.pow((i + 2).try_into().unwrap()));
     let data = create_scrambled_data(*sizes.last().unwrap());
@@ -97,28 +97,28 @@ fn hash_benchmark(c: &mut Criterion) {
         let size_data = &data[0..size];
 
         let id = BenchmarkId::new("Sequential", size);
-        group.bench_function(id, |b| {
-            b.iter_with_large_drop(|| hash_sequential(&size_data));
+        group.bench_with_input(id, size_data, |b, input| {
+            b.iter_with_large_drop(|| hash_sequential(input));
         });
 
         let id = BenchmarkId::new("Sequential-Bytes", size);
-        group.bench_function(id, |b| {
-            b.iter_with_large_drop(|| hash_bytes_sequential(&size_data));
+        group.bench_with_input(id, size_data, |b, input| {
+            b.iter_with_large_drop(|| hash_bytes_sequential(input));
         });
 
         let id = BenchmarkId::new("Threaded", size);
-        group.bench_function(id, |b| {
-            b.iter_with_large_drop(|| hash_threaded(&size_data));
+        group.bench_with_input(id, size_data, |b, input| {
+            b.iter_with_large_drop(|| hash_threaded(input));
         });
 
         let id = BenchmarkId::new("Threaded-Bytes", size);
-        group.bench_function(id, |b| {
-            b.iter_with_large_drop(|| hash_bytes_threaded(&size_data));
+        group.bench_with_input(id, size_data, |b, input| {
+            b.iter_with_large_drop(|| hash_bytes_threaded(input));
         });
 
         let id = BenchmarkId::new("Threaded-Channel-Bytes", size);
-        group.bench_function(id, |b| {
-            b.iter_with_large_drop(|| hash_bytes_channel(&size_data));
+        group.bench_with_input(id, size_data, |b, input| {
+            b.iter_with_large_drop(|| hash_bytes_channel(input));
         });
     }
 
@@ -127,5 +127,5 @@ fn hash_benchmark(c: &mut Criterion) {
 }
 
 // generate main method
-criterion_group!(benches, hash_benchmark);
+criterion_group!(benches, hashing_benchmark);
 criterion_main!(benches);
