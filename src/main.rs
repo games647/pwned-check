@@ -19,8 +19,8 @@ fn main() {
         println!("Using hash file: {:?}", hash_file);
     }
 
-    let hash_file = File::open(hash_file).expect("Hash file not accessible");
-    let reader = csv::Reader::from_path(passwords_file).expect("password file not accessible");
+    let hash_file = File::open(hash_file).expect("Hash file is not accessible");
+    let reader = csv::Reader::from_path(passwords_file).expect("password file is not accessible");
     run(reader, hash_file);
 }
 
@@ -49,8 +49,13 @@ fn create_cli_options<'help>() -> App<'help> {
 }
 
 fn run(password_reader: csv::Reader<File>, hash_file: File) {
-    collect::collect_hashes(password_reader);
-    find::find_hash(&hash_file);
+    let mut hashes = collect::collect_hashes(password_reader).unwrap();
+    println!("Finished hashing");
+
+    hashes.sort_unstable_by(|a, b| a.password_hash.cmp(&b.password_hash));
+    println!("Sorted");
+
+    find::find_hash(&hash_file, &hashes);
 }
 
 mod collect;

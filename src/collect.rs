@@ -1,42 +1,68 @@
+use core::fmt;
 use std::{
     fs::File,
-    thread
+    thread,
 };
+use std::fmt::Display;
+use std::hash::{Hash, Hasher};
 
 use crossbeam_channel::{
     bounded,
     Receiver,
-    select,
     Sender,
-    SendError
+    SendError,
 };
 use ring::digest::{digest, SHA1_FOR_LEGACY_USE_ONLY};
 use serde::Deserialize;
+use serde::export::Formatter;
 
 const PASSWORD_BUFFER: usize = 128;
 
-#[derive(Debug, Deserialize)]
-struct PasswordRecord {
-    url: String,
-    username: String,
-    password: String,
+#[derive(Debug, Eq)]
+pub struct SavedHash {
+    pub url: String,
+    pub username: String,
+    pub password_hash: String,
 }
 
-pub fn collect_hashes(password_reader: csv::Reader<File>) {
-    let (done, quit): (Sender<_>, Receiver<()>) = bounded(0);
+impl Hash for SavedHash {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.password_hash.hash(state);
+    }
+}
 
+impl PartialEq for SavedHash {
+    fn eq(&self, other: &Self) -> bool {
+        self.password_hash == other.password_hash
+    }
+}
+
+impl Display for SavedHash {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}@{}", self.username, self.url)
+    }
+}
+
+pub fn collect_hashes(password_reader: csv::Reader<File>) -> Result<Vec<SavedHash>, ()> {
     let threads = num_cpus::get();
     println!("Started {} hashing threads", threads);
 
-    // end is exclusive so start with 0
-    let (tx, rx): (Sender<String>, Receiver<String>) = bounded(PASSWORD_BUFFER);
+    let (tx, rx): (Sender<SavedPassword>, Receiver<SavedPassword>) = bounded(PASSWORD_BUFFER);
+    let (done, quit): (Sender<SavedHash>, Receiver<SavedHash>) = bounded(0);
     for _ in 0..threads {
         let local_rx = rx.clone();
         let local_done = done.clone();
         thread::spawn(move || {
-            for pass in local_rx {
-                let hash = hash_pass(&pass);
-                println!("HASH: {}", hash);
+            for in_record in local_rx {
+                let in_record: SavedPassword = in_record;
+                let hash = hash_pass(&in_record.password);
+
+                let record = SavedHash {
+                    url: in_record.url,
+                    username: in_record.username,
+                    password_hash: hash
+                };
+                local_done.send(record).unwrap();
             }
 
             // drop it explicitly so we could notice the done signal
@@ -51,20 +77,21 @@ pub fn collect_hashes(password_reader: csv::Reader<File>) {
     read_passwords(tx, password_reader).unwrap();
 
     // detect when all done channels are dropped this loop breaks
-    loop {
-        select! {
-            recv(quit) -> _ => break,
-        }
-    }
-
-    println!("Finished hashing");
+    Ok(quit.iter().collect())
 }
 
-fn read_passwords(tx: Sender<String>,
-                  mut file_reader: csv::Reader<File>) -> Result<(), SendError<String>> {
+#[derive(Debug, Deserialize)]
+struct SavedPassword {
+    url: String,
+    username: String,
+    password: String,
+}
+
+fn read_passwords(tx: Sender<SavedPassword>,
+                  mut file_reader: csv::Reader<File>) -> Result<(), SendError<SavedPassword>> {
     for result in file_reader.deserialize() {
-        let record: PasswordRecord = result.unwrap();
-        tx.send(record.url)?;
+        let record: SavedPassword = result.unwrap();
+        tx.send(record)?;
     }
 
     Ok(())
@@ -119,7 +146,7 @@ hello,https://www.rust-lang.org/,user,pass";
     fn validate_parse(data: &str) -> Result<(), csv::Error> {
         let mut reader = csv::Reader::from_reader(data.as_bytes());
         for result in reader.deserialize() {
-            let record: PasswordRecord = result?;
+            let record: SavedPassword = result?;
             assert_eq!(record.url, "https://www.rust-lang.org/");
             assert_eq!(record.username, "user");
             assert_eq!(record.password, "pass");

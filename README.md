@@ -20,8 +20,6 @@ Feedback appreciated.
 
 ## ToDo
 
-* Sort hashes (unstable)
-* Find hash
 * Thread pool
 * Use more generics like Read instead of concrete types
 * Chunked benchmark

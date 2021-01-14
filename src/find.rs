@@ -2,9 +2,11 @@ use std::{
     convert::{TryFrom, TryInto},
     fs::File,
     io::{BufRead, BufReader},
-    num::ParseIntError
+    num::ParseIntError,
 };
+use std::collections::HashMap;
 
+use crate::collect::SavedHash;
 use crate::find::ParseHashError::*;
 
 // use rayon::prelude::*;
@@ -22,7 +24,7 @@ use crate::find::ParseHashError::*;
 // However then the bytes buffer and this struct could then be mutated independently. They now have
 // two different memory locations.
 #[derive(Debug)]
-struct HashRecord<'a> {
+struct PwnedHash<'a> {
     hash: &'a str,
     count: u32,
 }
@@ -35,12 +37,10 @@ enum ParseHashError {
 
 // automatically convert ParseIntError in our custom enum type IntError
 impl From<ParseIntError> for ParseHashError {
-    fn from(e: ParseIntError) -> Self {
-        IntError(e)
-    }
+    fn from(e: ParseIntError) -> Self { IntError(e) }
 }
 
-impl<'a> TryFrom<&'a str> for HashRecord<'a> {
+impl<'a> TryFrom<&'a str> for PwnedHash<'a> {
     type Error = ParseHashError;
 
     fn try_from(value: &'a str) -> Result<Self, Self::Error> {
@@ -49,16 +49,26 @@ impl<'a> TryFrom<&'a str> for HashRecord<'a> {
         let hash = comp.next().ok_or_else(InvalidFormat)?;
         let count = comp.next().ok_or_else(InvalidFormat)?.parse()?;
 
-        Ok(HashRecord { hash, count })
+        Ok(PwnedHash { hash, count })
     }
 }
 
-pub fn find_hash(hash_file: &File) {
+pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
+    let map: HashMap<&String, &SavedHash> = hashes.iter().map(|x| (&x.password_hash, x)).collect();
+
     let reader = BufReader::new(hash_file);
     for line in reader.lines() {
         let line = line.unwrap();
-        let record: Result<HashRecord<'_>, _> = line.as_str().try_into();
-        println!("{:?}", record);
+        let record: PwnedHash<'_> = line.as_str().try_into().unwrap();
+
+        match map.get(&record.hash.to_string()) {
+            Some(saved) =>  {
+                let count = record.count;
+                println!("Your password for the following account {} has been pwned {}x times",
+                         saved, count);
+            },
+            _ => continue
+        }
     }
 }
 
@@ -117,7 +127,7 @@ mod test {
 
     #[test]
     fn test_parse() -> Result<(), ParseHashError> {
-        let record: HashRecord<'_> = "000000005AD76BD555C1D6D771DE417A4B87E4B4:4".try_into()?;
+        let record: PwnedHash<'_> = "000000005AD76BD555C1D6D771DE417A4B87E4B4:4".try_into()?;
         assert_eq!(record.hash, "000000005AD76BD555C1D6D771DE417A4B87E4B4");
         assert_eq!(record.count, 4);
 
@@ -127,7 +137,7 @@ mod test {
     #[test]
     fn test_number_parse_error() {
         let line = "000000005AD76BD555C1D6D771DE417A4B87E4B4:abc";
-        let result: Result<HashRecord<'_>, _> = line.try_into();
+        let result: Result<PwnedHash<'_>, _> = line.try_into();
         assert_matches!(result, Err(IntError(_)));
     }
 }
