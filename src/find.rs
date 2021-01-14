@@ -54,7 +54,10 @@ impl<'a> TryFrom<&'a str> for PwnedHash<'a> {
 }
 
 pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
-    let map: HashMap<&String, &SavedHash> = hashes.iter().map(|x| (&x.password_hash, x)).collect();
+    // make a copy of this hash rather than below (at the get call), because it's more likely that
+    // there are fewer saved passwords than in the database
+    let map: HashMap<String, &SavedHash> = hashes.iter()
+        .map(|x| (x.password_hash.to_owned(), x)).collect();
 
     let mut reader = BufReader::new(hash_file);
 
@@ -66,12 +69,12 @@ pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
             Ok(_) => {
                 let record: PwnedHash<'_> = buf.as_str().try_into().unwrap();
 
-                match map.get(&record.hash.to_string()) {
-                    Some(saved) =>  {
+                match map.get(record.hash) {
+                    Some(saved) => {
                         let count = record.count;
                         println!("Your password for the following account {} has been pwned {}x times",
                                  saved, count);
-                    },
+                    }
                     _ => continue
                 }
             }

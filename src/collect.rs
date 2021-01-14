@@ -60,7 +60,7 @@ pub fn collect_hashes(password_reader: csv::Reader<File>) -> Result<Vec<SavedHas
                 let record = SavedHash {
                     url: in_record.url,
                     username: in_record.username,
-                    password_hash: hash
+                    password_hash: hash,
                 };
                 local_done.send(record).unwrap();
             }
