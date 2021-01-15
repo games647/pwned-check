@@ -19,10 +19,12 @@ Feedback appreciated.
 * Multi-Threaded
 * Clear read passwords from memory
 
-
 ## ToDo
 
 * Optimize searching in txt file
+* Fixed sized hash
+* In-place decoding for saved hashes and passwords
+    * Re-use allocations - reduce number of Vec during finding
 * Benchmark - Criterion
     * Multi Threaded file reading (Consumer) vs No Copy
 * Properly structure it using error objects (removing `unwrap`)
@@ -106,19 +108,25 @@ Then you can find the executable in the `target/release` directory
 
 https://llogiq.github.io/2017/06/01/perf-pitfalls.html
 
-* Buffered I/O
+* Standard I/O is unbuffered - use buffered if applicable
+* Use `target-cpu=native` to leverage specific optimizations - however experiences may differ
+* Reduce UTF-8 and line allocations - see above
+* Use a custom hasher if it fits your data
+* `println!` performs a lock on each all call
+* Iterate rather than an index loop
+* Avoid collect in intermediate variables
+* Static values could use arrays instead of `Vec<T>`
+* mem::replace when switching values
+* Keep attention to passing closures vs invoking them directly
+    * Ex: Mapping to a default value
+
+---
+
 * SIMD can easily improve performance if you're dealing with
     * However, they have to fit in the supported registers exactly (i.e. u8 * 32), otherwise they need to be resized
     * Nevertheless, the performance could vary a lot depending on the compiler settings * In this
       instance `target-cpu=native` was slower than `target-cpu=x86-64` in both SIMD and normal mode * Even LTO caused a
       negative effect, although reducing the codegen size actually helped
-* Use custom if it fits your data
-* Iterate rather than index
-* Avoid collect in intermediate variables
-* Use slices instead of Vec for no resizable operations or arrays if known at compile-time
-* mem::replace when switching values
-* Keep attention to passing closures vs invoking them directly
-    * Ex: Mapping to a default value
 
 * Use channels and parallel threads for computation if partitioning is possible
 * Performance through `cargo build --release` is huge

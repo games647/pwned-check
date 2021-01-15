@@ -72,11 +72,13 @@ mod test {
 
     use super::*;
 
+    const TEST_LINE: &str = "000000005AD76BD555C1D6D771DE417A4B87E4B4:4";
+    const INVALID_INT: &str = "000000005AD76BD555C1D6D771DE417A4B87E4B4:abc";
+
     // demonstration of owned and borrowed variants
     mod owned {
         use super::*;
 
-        // implementation where the record owns the String
         #[derive(Debug)]
         struct HashRecordOwned {
             hash: String,
@@ -108,23 +110,20 @@ mod test {
         }
 
         #[test]
-        fn test_parse_owned() -> Result<(), ParseHashError> {
+        fn test_parse_owned() {
             let record: HashRecordOwned = {
                 // here the owned String would get dropped - however it gets moved into the record
-                let droppable = "000000005AD76BD555C1D6D771DE417A4B87E4B4:4".to_string();
-                droppable.try_into()?
+                let droppable = TEST_LINE.to_string();
+                droppable.try_into().unwrap()
             };
 
             assert_eq!(record.hash, "000000005AD76BD555C1D6D771DE417A4B87E4B4");
             assert_eq!(record.count, 4);
-
-            Ok(())
         }
 
         #[test]
         fn test_number_parse_owned_error() {
-            let line = "000000005AD76BD555C1D6D771DE417A4B87E4B4:abc".to_string();
-            let result: Result<HashRecordOwned, _> = line.try_into();
+            let result: Result<HashRecordOwned, _> = INVALID_INT.to_string().try_into();
             assert_matches!(result, Err(IntError()));
         }
     }
@@ -165,43 +164,32 @@ mod test {
         }
 
         #[test]
-        fn test_parse_borrow() -> Result<(), ParseHashError> {
-            let record: PwnedHashBorrow<'_> =
-                "000000005AD76BD555C1D6D771DE417A4B87E4B4:4".try_into()?;
-
+        fn test_parse_borrow() {
+            let record: PwnedHashBorrow<'_> = TEST_LINE.try_into().unwrap();
             assert_eq!(record.hash, "000000005AD76BD555C1D6D771DE417A4B87E4B4");
             assert_eq!(record.count, 4);
-
-            Ok(())
         }
 
         #[test]
         fn test_number_parse_error_borrow() {
-            let line = "000000005AD76BD555C1D6D771DE417A4B87E4B4:abc";
-            let result: Result<PwnedHashBorrow<'_>, _> = line.try_into();
+            let result: Result<PwnedHashBorrow<'_>, _> = INVALID_INT.try_into();
             assert_matches!(result, Err(IntError()));
         }
     }
 
     #[test]
-    fn test_parse() -> Result<(), ParseHashError> {
-        let line: &[u8] = b"000000005AD76BD555C1D6D771DE417A4B87E4B4:4";
-        let record: PwnedHash = line.try_into()?;
-
+    fn test_parse() {
+        let record: PwnedHash = TEST_LINE.as_bytes().try_into().unwrap();
+        assert_eq!(record.count, 4);
         assert_eq!(
             HEXUPPER.encode(&record.hash),
             "000000005AD76BD555C1D6D771DE417A4B87E4B4"
         );
-        assert_eq!(record.count, 4);
-
-        Ok(())
     }
 
     #[test]
     fn test_number_parse_error() {
-        let line: &[u8] = b"000000005AD76BD555C1D6D771DE417A4B87E4B4:abc";
-
-        let result: Result<PwnedHash, _> = line.try_into();
+        let result: Result<PwnedHash, _> = INVALID_INT.as_bytes().try_into();
         assert_matches!(result, Err(IntError()));
     }
 }
