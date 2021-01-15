@@ -1,9 +1,9 @@
 use std::{
     fmt::Display,
-    fs::File,
     hash::{Hash, Hasher},
     thread,
 };
+use std::io::Read;
 
 use crossbeam_channel::{bounded, Receiver, Sender, SendError};
 use ring::digest::{digest, Digest, SHA1_FOR_LEGACY_USE_ONLY};
@@ -31,6 +31,7 @@ impl PartialEq for SavedHash {
     }
 }
 
+// marker interface only
 impl Eq for SavedHash {}
 
 impl Display for SavedHash {
@@ -39,25 +40,24 @@ impl Display for SavedHash {
     }
 }
 
-pub fn collect_hashes(password_reader: csv::Reader<File>) -> Result<Vec<SavedHash>, ()> {
+pub fn collect_hashes(password_reader: csv::Reader<impl Read>) -> Result<Vec<SavedHash>, ()> {
     let threads = num_cpus::get();
     println!("Started {} hashing threads", threads);
 
-    let (tx, rx): (Sender<SavedPassword>, Receiver<SavedPassword>) = bounded(PASSWORD_BUFFER);
-    let (done, quit): (Sender<SavedHash>, Receiver<SavedHash>) = bounded(0);
+    let (tx, rx) = bounded(PASSWORD_BUFFER);
+    let (done, quit) = bounded(0);
     for _ in 0..threads {
-        let local_rx = rx.clone();
+        let local_rx: Receiver<SavedPassword> = rx.clone();
         let local_done = done.clone();
         thread::spawn(move || {
             for in_record in local_rx {
-                let in_record: SavedPassword = in_record;
-                let hash = hash_pass(&in_record.password);
-
+                let password_hash = hash_pass(&in_record.password);
                 let record = SavedHash {
                     url: in_record.url,
                     username: in_record.username,
-                    password_hash: hash,
+                    password_hash,
                 };
+
                 local_done.send(record).unwrap();
             }
 
@@ -85,7 +85,7 @@ struct SavedPassword {
 
 fn read_passwords(
     tx: Sender<SavedPassword>,
-    mut file_reader: csv::Reader<File>,
+    mut file_reader: csv::Reader<impl Read>,
 ) -> Result<(), SendError<SavedPassword>> {
     for result in file_reader.deserialize() {
         let record: SavedPassword = result.unwrap();

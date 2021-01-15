@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::{fs::File, io::Read};
 
 use clap::{App, Arg, crate_description, crate_name, crate_version};
 
@@ -48,14 +48,17 @@ fn create_cli_options<'help>() -> App<'help> {
         )
 }
 
-fn run(password_reader: csv::Reader<File>, hash_file: File) {
+fn run(password_reader: csv::Reader<impl Read>, hash_file: File) {
     let mut hashes = collect::collect_hashes(password_reader).unwrap();
     println!("Finished hashing");
 
+    // unstable is slightly faster than the normal search - we don't care about mixed equal
+    // entries so lets use this
     hashes.sort_unstable_by(|a, b| a.password_hash.as_ref().cmp(&b.password_hash.as_ref()));
     println!("Sorted");
 
     find::find_hash(&hash_file, &hashes);
+    println!("Finished");
 }
 
 mod collect;
@@ -91,12 +94,12 @@ mod test {
 
     #[test]
     fn test_missing_file() {
-        let args = ["pwned-check"];
+        let mut args = vec!["pwned-check"];
         let matches = create_cli_options().try_get_matches_from(&args);
 
         assert!(!matches.is_ok(), "CLI parse result {:?}", matches);
 
-        let args = ["pwned-check", "file.txt"];
+        args.push("file.txt");
         let matches = create_cli_options().try_get_matches_from(&args);
 
         assert!(!matches.is_ok(), "CLI parse result {:?}", matches);

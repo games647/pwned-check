@@ -20,7 +20,6 @@ Feedback appreciated.
 
 ## ToDo
 
-* Use more generics like Read instead of concrete types
 * Optimize searching in txt file
 * Benchmark - Criterion
     * Multi Threaded file reading (Consumer) vs No Copy
