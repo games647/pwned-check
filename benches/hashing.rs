@@ -5,10 +5,7 @@ use crossbeam_channel::{bounded, Receiver, Sender};
 use crossbeam_utils::thread;
 use data_encoding::HEXUPPER;
 use init_with::InitWith;
-use rand::{
-    distributions::Alphanumeric,
-    prelude::*,
-};
+use rand::{distributions::Alphanumeric, prelude::*};
 use rayon::prelude::*;
 use ring::digest::{digest, Digest, SHA1_FOR_LEGACY_USE_ONLY};
 
@@ -63,7 +60,8 @@ fn hash_bytes_channel(data: &[Vec<u8>]) -> Vec<Digest> {
         drop(data_send);
 
         hash_rec.iter().collect()
-    }).unwrap()
+    })
+    .unwrap()
 }
 
 /// hash and format to the hex representation

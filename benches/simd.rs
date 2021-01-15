@@ -18,19 +18,23 @@ fn normal_equal_threaded(data: &[[u8; 32]], hay: &[u8; 32]) -> bool {
 
 fn simd_equal(data: &[[u8; 32]], hay: &[u8; 32]) -> bool {
     let hay = u8x32::from_slice_unaligned(hay);
-    data.iter().any(|x| u8x32::from_slice_unaligned(x).eq(hay).all())
+    data.iter()
+        .any(|x| u8x32::from_slice_unaligned(x).eq(hay).all())
 }
 
 fn simd_equal_threaded(data: &[[u8; 32]], hay: &[u8; 32]) -> bool {
     let hay = u8x32::from_slice_unaligned(hay);
-    data.par_iter().any(|x| u8x32::from_slice_unaligned(x).eq(hay).all())
+    data.par_iter()
+        .any(|x| u8x32::from_slice_unaligned(x).eq(hay).all())
 }
 
 fn create_scrambled_data(size: usize) -> Vec<[u8; 32]> {
-    (0..size).map(|_| {
-        let buf: [u8; 32] = rand::thread_rng().gen();
-        buf
-    }).collect()
+    (0..size)
+        .map(|_| {
+            let buf: [u8; 32] = rand::thread_rng().gen();
+            buf
+        })
+        .collect()
 }
 
 fn simd_benchmark(c: &mut Criterion) {

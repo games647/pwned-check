@@ -1,44 +1,40 @@
-use core::fmt;
 use std::{
+    fmt::Display,
     fs::File,
+    hash::{Hash, Hasher},
     thread,
 };
-use std::fmt::Display;
-use std::hash::{Hash, Hasher};
 
-use crossbeam_channel::{
-    bounded,
-    Receiver,
-    Sender,
-    SendError,
-};
-use ring::digest::{digest, SHA1_FOR_LEGACY_USE_ONLY};
+use crossbeam_channel::{bounded, Receiver, Sender, SendError};
+use ring::digest::{digest, Digest, SHA1_FOR_LEGACY_USE_ONLY};
 use serde::Deserialize;
 use serde::export::Formatter;
 
 const PASSWORD_BUFFER: usize = 128;
 
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct SavedHash {
     pub url: String,
     pub username: String,
-    pub password_hash: String,
+    pub password_hash: Digest,
 }
 
 impl Hash for SavedHash {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.password_hash.hash(state);
+        self.password_hash.as_ref().hash(state);
     }
 }
 
 impl PartialEq for SavedHash {
     fn eq(&self, other: &Self) -> bool {
-        self.password_hash == other.password_hash
+        self.password_hash.as_ref() == other.password_hash.as_ref()
     }
 }
 
+impl Eq for SavedHash {}
+
 impl Display for SavedHash {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}@{}", self.username, self.url)
     }
 }
@@ -87,8 +83,10 @@ struct SavedPassword {
     password: String,
 }
 
-fn read_passwords(tx: Sender<SavedPassword>,
-                  mut file_reader: csv::Reader<File>) -> Result<(), SendError<SavedPassword>> {
+fn read_passwords(
+    tx: Sender<SavedPassword>,
+    mut file_reader: csv::Reader<File>,
+) -> Result<(), SendError<SavedPassword>> {
     for result in file_reader.deserialize() {
         let record: SavedPassword = result.unwrap();
         tx.send(record)?;
@@ -97,33 +95,27 @@ fn read_passwords(tx: Sender<SavedPassword>,
     Ok(())
 }
 
-fn hash_pass(pass: &str) -> String {
-    let digest = digest(&SHA1_FOR_LEGACY_USE_ONLY, pass.as_bytes());
-    digest
-        .as_ref()
-        .iter()
-        .map(|x| format!("{:02x}", x))
-        .collect::<String>()
+fn hash_pass(pass: &str) -> Digest {
+    digest(&SHA1_FOR_LEGACY_USE_ONLY, pass.as_bytes())
 }
 
 #[cfg(test)]
 mod test {
+    use data_encoding::HEXLOWER;
+
     use super::*;
 
     const HASH_EXPECTED: &str = "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d";
 
     #[test]
     fn test_hash() {
-        assert_eq!(
-            hash_pass("hello"),
-            HASH_EXPECTED
-        )
+        assert_eq!(HEXLOWER.encode(hash_pass("hello").as_ref()), HASH_EXPECTED)
     }
 
     #[test]
     fn test_hash_failed() {
         assert_ne!(
-            hash_pass("fail"),
+            HEXLOWER.encode(hash_pass("fail").as_ref()),
             "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d"
         )
     }

@@ -20,17 +20,11 @@ Feedback appreciated.
 
 ## ToDo
 
-* Thread pool
 * Use more generics like Read instead of concrete types
-* Chunked benchmark
-* Report count + URL
 * Optimize searching in txt file
-* Thread scope
 * Benchmark - Criterion
-    * Multi-Threaded SHA-1 vs Single
     * Multi Threaded file reading (Consumer) vs No Copy
 * Properly structure it using error objects (removing `unwrap`)
-* Read as ASCII not UTF-8
 
 ## Password recommendations
 
@@ -96,9 +90,21 @@ Then you can find the executable in the `target/release` directory
 
 ### Discovered optimizations
 
+* Build with release tag `cargo build --release`
+
+#### CSV Crate suggestions
+
+* Drop UTF-8 decoding if not necessary
+    * Use `ByteRecord`s
+* Drop per line/record allocations - Try to re-use them
+    * Applies to BuffLines as well for records in csv
+* Use borrowed data instead of owned data, because later often requires copy
+    * Ex: For example: `&'a str` for records
+
+---
+
 https://llogiq.github.io/2017/06/01/perf-pitfalls.html
 
-* Always release
 * Buffered I/O
 * SIMD can easily improve performance if you're dealing with
     * However, they have to fit in the supported registers exactly (i.e. u8 * 32), otherwise they need to be resized

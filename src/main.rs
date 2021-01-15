@@ -52,7 +52,7 @@ fn run(password_reader: csv::Reader<File>, hash_file: File) {
     let mut hashes = collect::collect_hashes(password_reader).unwrap();
     println!("Finished hashing");
 
-    hashes.sort_unstable_by(|a, b| a.password_hash.cmp(&b.password_hash));
+    hashes.sort_unstable_by(|a, b| a.password_hash.as_ref().cmp(&b.password_hash.as_ref()));
     println!("Sorted");
 
     find::find_hash(&hash_file, &hashes);
