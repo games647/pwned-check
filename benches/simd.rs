@@ -29,12 +29,7 @@ fn simd_equal_threaded(data: &[[u8; 32]], hay: &[u8; 32]) -> bool {
 }
 
 fn create_scrambled_data(size: usize) -> Vec<[u8; 32]> {
-    (0..size)
-        .map(|_| {
-            let buf: [u8; 32] = rand::thread_rng().gen();
-            buf
-        })
-        .collect()
+    (0..size).map(|_| rand::thread_rng().gen()).collect()
 }
 
 fn simd_benchmark(c: &mut Criterion) {

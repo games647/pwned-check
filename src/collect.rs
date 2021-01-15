@@ -1,14 +1,16 @@
 use std::{
     fmt::Display,
     hash::{Hash, Hasher},
-    thread,
+    io::Read,
+    thread
 };
-use std::io::Read;
 
 use crossbeam_channel::{bounded, Receiver, Sender, SendError};
 use ring::digest::{digest, Digest, SHA1_FOR_LEGACY_USE_ONLY};
-use serde::Deserialize;
-use serde::export::Formatter;
+use serde::{
+    Deserialize,
+    export::Formatter
+};
 
 const PASSWORD_BUFFER: usize = 128;
 
