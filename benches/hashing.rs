@@ -96,30 +96,28 @@ fn hashing_benchmark(c: &mut Criterion) {
     for &size in &sizes {
         let size_data = &data[0..size];
 
-        let id = BenchmarkId::new("Sequential", size);
-        group.bench_with_input(id, size_data, |b, input| {
-            b.iter_with_large_drop(|| hash_sequential(input));
-        });
+        /// Generates benchmark test units
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// gen_bench!("Test-Method", method_name);
+        /// ```
+        macro_rules! gen_bench {
+            // representation name and function under test
+            ($name:literal, $fut:ident) => {
+                let id = BenchmarkId::new($name, size);
+                group.bench_with_input(id, size_data, |b, input| {
+                    b.iter_with_large_drop(|| $fut(input));
+                });
+            };
+        }
 
-        let id = BenchmarkId::new("Sequential-Bytes", size);
-        group.bench_with_input(id, size_data, |b, input| {
-            b.iter_with_large_drop(|| hash_bytes_sequential(input));
-        });
-
-        let id = BenchmarkId::new("Threaded", size);
-        group.bench_with_input(id, size_data, |b, input| {
-            b.iter_with_large_drop(|| hash_threaded(input));
-        });
-
-        let id = BenchmarkId::new("Threaded-Bytes", size);
-        group.bench_with_input(id, size_data, |b, input| {
-            b.iter_with_large_drop(|| hash_bytes_threaded(input));
-        });
-
-        let id = BenchmarkId::new("Threaded-Channel-Bytes", size);
-        group.bench_with_input(id, size_data, |b, input| {
-            b.iter_with_large_drop(|| hash_bytes_channel(input));
-        });
+        gen_bench!("Sequential", hash_sequential);
+        gen_bench!("Sequential-Bytes", hash_bytes_sequential);
+        gen_bench!("Threaded", hash_threaded);
+        gen_bench!("Threaded-Bytes", hash_bytes_threaded);
+        gen_bench!("Threaded-Channel-Bytes", hash_bytes_channel);
     }
 
     // recommended but not necessary

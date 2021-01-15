@@ -62,7 +62,7 @@ packed_simd_2 = "0.3"
 # Benchmark names
 
 # Name refer to the file name - the group inside them indicate the command parameter name
-# cargo bench NAME
+# cargo bench NAME - for example cargo bench SIMD
 [[bench]]
 name = "hashing"
 # Use criterion harness instead of our own

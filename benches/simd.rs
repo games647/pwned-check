@@ -39,27 +39,30 @@ fn simd_benchmark(c: &mut Criterion) {
     let data = create_scrambled_data(*sizes.last().unwrap());
     for &size in &sizes {
         let size_data = &data[0..size];
+
+        // random hay, because otherwise Rust could perhaps optimize it to memory address compare
         let hay = rand::thread_rng().gen();
 
-        let id = BenchmarkId::new("Normal", size);
-        group.bench_with_input(id, &(size_data, hay), |b, (data, hay)| {
-            b.iter(|| normal_equal(data, hay));
-        });
+        /// Generates benchmark test units
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// gen_bench!("Test-Method", method_name);
+        /// ```
+        macro_rules! gen_bench {
+            ($name:literal, $fut:ident) => {
+                let id = BenchmarkId::new($name, size);
+                group.bench_with_input(id, &(size_data, hay), |b, (data, hay)| {
+                    b.iter(|| $fut(data, hay));
+                });
+            };
+        }
 
-        let id = BenchmarkId::new("Threaded", size);
-        group.bench_with_input(id, &(size_data, hay), |b, (data, hay)| {
-            b.iter(|| normal_equal_threaded(data, hay));
-        });
-
-        let id = BenchmarkId::new("SIMD", size);
-        group.bench_with_input(id, &(size_data, hay), |b, (data, hay)| {
-            b.iter(|| simd_equal(data, hay));
-        });
-
-        let id = BenchmarkId::new("SIMD-Threaded", size);
-        group.bench_with_input(id, &(size_data, hay), |b, (data, hay)| {
-            b.iter(|| simd_equal_threaded(data, hay));
-        });
+        gen_bench!("Normal", normal_equal);
+        gen_bench!("Threaded", normal_equal_threaded);
+        gen_bench!("SIMD", simd_equal);
+        gen_bench!("SIMD-Threaded", simd_equal_threaded);
     }
 
     // recommended but not necessary
