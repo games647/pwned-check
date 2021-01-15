@@ -17,6 +17,8 @@ Feedback appreciated.
 
 * Offline
 * Multi-Threaded
+* Clear read passwords from memory
+
 
 ## ToDo
 

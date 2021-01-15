@@ -25,10 +25,10 @@ enum ParseHashError {
     InvalidFormat(),
 }
 
-impl<'a> TryFrom<&'a [u8]> for PwnedHash {
+impl TryFrom<&[u8]> for PwnedHash {
     type Error = ParseHashError;
 
-    fn try_from(value: &'a [u8]) -> Result<Self, Self::Error> {
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         assert!(&[value[40]] == b":");
 
         let hash_part = &value[0..40];
@@ -128,6 +128,7 @@ mod test {
             assert_matches!(result, Err(IntError()));
         }
     }
+
     mod borrow {
         use super::*;
 

@@ -6,8 +6,11 @@ authors = ["games647 <games647@users.noreply.github.com>"]
 edition = "2018"
 
 [dependencies]
+# Clear memory of clear text credentials
+secstr = { version = "0.4", features = ["serde"] }
+
 # Statically generate array at compile time
-init_with = "1.1.0"
+init_with = "1.1"
 
 # Crypto-library
 ring = "0.16"

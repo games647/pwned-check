@@ -61,7 +61,7 @@ fn hash_bytes_channel(data: &[[u8; 32]]) -> Vec<Digest> {
 
         hash_rec.iter().collect()
     })
-    .unwrap()
+        .unwrap()
 }
 
 /// hash and format to the hex representation
