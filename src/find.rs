@@ -9,6 +9,8 @@ use atoi::atoi;
 use bstr::io::BufReadExt;
 use data_encoding::HEXUPPER;
 
+use lazy_init::Lazy;
+
 use crate::collect::SavedHash;
 use crate::find::ParseHashError::*;
 use crate::SHA1_BYTE_LENGTH;
@@ -16,7 +18,7 @@ use crate::SHA1_BYTE_LENGTH;
 #[derive(Debug)]
 struct PwnedHash {
     hash: [u8; SHA1_BYTE_LENGTH],
-    count: u32,
+    count: Lazy<Result<u32, ParseHashError>>,
 }
 
 #[derive(Debug)]
@@ -29,7 +31,7 @@ impl PwnedHash {
     fn empty() -> PwnedHash {
         PwnedHash {
             hash: [0; SHA1_BYTE_LENGTH],
-            count: 0,
+            count: Lazy::new(),
         }
     }
 
@@ -40,11 +42,11 @@ impl PwnedHash {
         let hash_part = &input[..40];
         let len = HEXUPPER.decode_mut(hash_part, &mut self.hash).unwrap();
         assert_eq!(len, SHA1_BYTE_LENGTH);
-
-        // TODO: parse this lazily
-        let count = atoi::<u32>(&input[41..]).ok_or(IntError())?;
-        self.count = count;
         Ok(())
+    }
+
+    fn parse_count(&mut self, input: &[u8]) -> &Result<u32, ParseHashError> {
+        self.count.get_or_create(|| atoi::<u32>(&input[41..]).ok_or(IntError()))
     }
 }
 
@@ -75,10 +77,11 @@ pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
         .for_byte_line(|line| {
             record.parse_into(line).unwrap();
             if let Some(saved) = map.get(&record.hash[0..]) {
-                let count = record.count;
+                let count = record.parse_count(line).as_ref().unwrap();
                 println!(
                     "Your password for the following account {} has been pwned {}x times",
-                    saved, count
+                    saved,
+                    count
                 );
             }
 
@@ -202,8 +205,12 @@ mod test {
 
     #[test]
     fn test_parse() {
-        let record: PwnedHash = TEST_LINE.as_bytes().try_into().unwrap();
-        assert_eq!(record.count, 4);
+        let bytes_line = TEST_LINE.as_bytes();
+        let mut record: PwnedHash = bytes_line.try_into().unwrap();
+        assert_matches!(
+            record.parse_count(bytes_line),
+            Ok(4)
+        );
         assert_eq!(
             HEXUPPER.encode(&record.hash),
             "000000005AD76BD555C1D6D771DE417A4B87E4B4"
@@ -212,7 +219,9 @@ mod test {
 
     #[test]
     fn test_number_parse_error() {
-        let result: Result<PwnedHash, _> = INVALID_INT.as_bytes().try_into();
-        assert_matches!(result, Err(IntError()));
+        let bytes_line = INVALID_INT.as_bytes();
+        let mut record: PwnedHash = bytes_line.try_into().unwrap();
+        let res = record.parse_count(bytes_line);
+        assert_matches!(res, Err(IntError()));
     }
 }

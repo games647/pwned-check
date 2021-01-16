@@ -27,7 +27,6 @@ Feedback appreciated.
     * Evaluate tuple searching - like hashbrown
     * Experiment with SIMD
     * Ordered search in linear order
-    * Lazily parse hash count
 * Benchmark - Criterion
     * Multi Threaded file reading (Consumer) vs No Copy
 * Properly structure it using error objects (removing `unwrap`)

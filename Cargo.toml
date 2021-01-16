@@ -6,6 +6,9 @@ authors = ["games647 <games647@users.noreply.github.com>"]
 edition = "2018"
 
 [dependencies]
+# Lazy evalute expressions
+lazy-init = "0.4"
+
 # Clear memory of clear text credentials
 secstr = { version = "0.4", features = ["serde"] }
 
@@ -73,4 +76,8 @@ harness = false
 
 [[bench]]
 name = "simd"
+harness = false
+
+[[bench]]
+name = "find"
 harness = false
