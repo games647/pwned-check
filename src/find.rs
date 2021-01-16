@@ -3,7 +3,6 @@ use std::{
     convert::{TryFrom, TryInto},
     fs::File,
     io::BufReader,
-    num::ParseIntError,
 };
 
 use atoi::atoi;
@@ -15,8 +14,7 @@ use crate::find::ParseHashError::*;
 
 #[derive(Debug)]
 struct PwnedHash {
-    // TODO: use fixed array, because we know the exact size
-    hash: Vec<u8>,
+    hash: [u8; 20],
     count: u32,
 }
 
@@ -31,10 +29,14 @@ impl TryFrom<&[u8]> for PwnedHash {
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         assert!(&[value[40]] == b":");
+        assert!(value.len() > 41);
+
+        let hash_part = &value[0..40];
 
         // TODO: drop alloc
-        let hash_part = &value[0..40];
-        let hash = HEXUPPER.decode(&hash_part).unwrap();
+        let mut hash: [u8; 20] = [0; 20];
+        let len = HEXUPPER.decode_mut(hash_part, &mut hash).unwrap();
+        assert_eq!(len, 20);
 
         // TODO: parse this lazily
         let count = atoi::<u32>(&value[41..]).ok_or(IntError())?;
@@ -57,7 +59,7 @@ pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
         .for_byte_line(|line| {
             // TODO: drop alloc here
             let record: PwnedHash = line.try_into().unwrap();
-            if let Some(saved) = map.get(record.hash.as_slice()) {
+            if let Some(saved) = map.get(&record.hash[0..]) {
                 let count = record.count;
                 println!(
                     "Your password for the following account {} has been pwned {}x times",
@@ -81,6 +83,8 @@ mod test {
 
     // demonstration of owned and borrowed variants
     mod owned {
+        use std::num::ParseIntError;
+
         use super::*;
 
         #[derive(Debug)]
