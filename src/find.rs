@@ -24,35 +24,35 @@ enum ParseHashError {
     InvalidFormat(),
 }
 
-fn parse_into(input: &[u8], dest: &mut PwnedHash) -> Result<(), ParseHashError> {
-    assert!(&[input[40]] == b":");
-    assert!(input.len() > 41);
+impl PwnedHash {
+    fn empty() -> PwnedHash {
+        PwnedHash {
+            hash: [0; 20],
+            count: 0,
+        }
+    }
 
-    let hash_part = &input[0..40];
+    fn parse_into(&mut self, input: &[u8]) -> Result<(), ParseHashError> {
+        assert!(&[input[40]] == b":");
+        assert!(input.len() > 41);
 
-    decode_hex_into(hash_part, &mut dest.hash);
+        let hash_part = &input[0..40];
+        let len = HEXUPPER.decode_mut(hash_part, &mut self.hash).unwrap();
+        assert_eq!(len, 20);
 
-    // TODO: parse this lazily
-    let count = atoi::<u32>(&input[41..]).ok_or(IntError())?;
-    dest.count = count;
-    Ok(())
-}
-
-fn decode_hex_into(input: &[u8], dest: &mut [u8]) {
-    let len = HEXUPPER.decode_mut(input, dest).unwrap();
-    assert_eq!(len, 20);
+        // TODO: parse this lazily
+        let count = atoi::<u32>(&input[41..]).ok_or(IntError())?;
+        self.count = count;
+        Ok(())
+    }
 }
 
 impl TryFrom<&[u8]> for PwnedHash {
     type Error = ParseHashError;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        let mut record = PwnedHash {
-            hash: [0; 20],
-            count: 0,
-        };
-
-        parse_into(value, &mut record)?;
+        let mut record = PwnedHash::empty();
+        record.parse_into(value)?;
         Ok(record)
     }
 }
@@ -66,16 +66,13 @@ pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
         .collect();
 
     // re-use hash buffer to reduce the number of allocations
-    let mut record: PwnedHash = PwnedHash {
-        hash: [0; 20],
-        count: 0,
-    };
+    let mut record: PwnedHash = PwnedHash::empty();
 
     BufReader::new(hash_file)
         // reads line-by-line including re-use the allocation
         // so we don't need to convert it to UTF-8 or make an extra allocation
         .for_byte_line(|line| {
-            parse_into(line, &mut record).unwrap();
+            record.parse_into(line).unwrap();
             if let Some(saved) = map.get(&record.hash[0..]) {
                 let count = record.count;
                 println!(
