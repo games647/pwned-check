@@ -8,27 +8,30 @@ use packed_simd_2::u8x32;
 use rand::prelude::*;
 use rayon::prelude::*;
 
-fn normal_equal(data: &[[u8; 32]], hay: &[u8; 32]) -> bool {
+/// 32 * byte fits perfects into 256bit SIMD lane width which is more wide spread
+const COMPARE_BYTE_SIZE: usize = 32;
+
+fn normal_equal(data: &[[u8; COMPARE_BYTE_SIZE]], hay: &[u8; COMPARE_BYTE_SIZE]) -> bool {
     data.iter().any(|x| x.eq(hay))
 }
 
-fn normal_equal_threaded(data: &[[u8; 32]], hay: &[u8; 32]) -> bool {
+fn normal_equal_threaded(data: &[[u8; COMPARE_BYTE_SIZE]], hay: &[u8; COMPARE_BYTE_SIZE]) -> bool {
     data.par_iter().any(|x| x.eq(hay))
 }
 
-fn simd_equal(data: &[[u8; 32]], hay: &[u8; 32]) -> bool {
+fn simd_equal(data: &[[u8; COMPARE_BYTE_SIZE]], hay: &[u8; COMPARE_BYTE_SIZE]) -> bool {
     let hay = u8x32::from_slice_unaligned(hay);
     data.iter()
         .any(|x| u8x32::from_slice_unaligned(x).eq(hay).all())
 }
 
-fn simd_equal_threaded(data: &[[u8; 32]], hay: &[u8; 32]) -> bool {
+fn simd_equal_threaded(data: &[[u8; COMPARE_BYTE_SIZE]], hay: &[u8; COMPARE_BYTE_SIZE]) -> bool {
     let hay = u8x32::from_slice_unaligned(hay);
     data.par_iter()
         .any(|x| u8x32::from_slice_unaligned(x).eq(hay).all())
 }
 
-fn create_scrambled_data(size: usize) -> Vec<[u8; 32]> {
+fn create_scrambled_data(size: usize) -> Vec<[u8; COMPARE_BYTE_SIZE]> {
     (0..size).map(|_| rand::thread_rng().gen()).collect()
 }
 

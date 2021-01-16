@@ -11,10 +11,11 @@ use data_encoding::HEXUPPER;
 
 use crate::collect::SavedHash;
 use crate::find::ParseHashError::*;
+use crate::SHA1_BYTE_LENGTH;
 
 #[derive(Debug)]
 struct PwnedHash {
-    hash: [u8; 20],
+    hash: [u8; SHA1_BYTE_LENGTH],
     count: u32,
 }
 
@@ -27,7 +28,7 @@ enum ParseHashError {
 impl PwnedHash {
     fn empty() -> PwnedHash {
         PwnedHash {
-            hash: [0; 20],
+            hash: [0; SHA1_BYTE_LENGTH],
             count: 0,
         }
     }
@@ -36,9 +37,9 @@ impl PwnedHash {
         assert!(&[input[40]] == b":");
         assert!(input.len() > 41);
 
-        let hash_part = &input[0..40];
+        let hash_part = &input[..40];
         let len = HEXUPPER.decode_mut(hash_part, &mut self.hash).unwrap();
-        assert_eq!(len, 20);
+        assert_eq!(len, SHA1_BYTE_LENGTH);
 
         // TODO: parse this lazily
         let count = atoi::<u32>(&input[41..]).ok_or(IntError())?;

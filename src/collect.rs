@@ -12,13 +12,15 @@ use ring::digest::{digest, Digest, SHA1_FOR_LEGACY_USE_ONLY};
 use secstr::SecStr;
 use serde::Deserialize;
 
+use crate::SHA1_BYTE_LENGTH;
+
 const PASSWORD_BUFFER: usize = 128;
 
 #[derive(Debug)]
 pub struct SavedHash {
     url: String,
     username: String,
-    pub password_hash: [u8; 20],
+    pub password_hash: [u8; SHA1_BYTE_LENGTH],
 }
 
 impl Hash for SavedHash {
@@ -55,7 +57,7 @@ pub fn collect_hashes(password_reader: csv::Reader<impl Read>) -> Result<Vec<Sav
             for in_record in local_rx {
                 let digest = hash_pass(in_record.password.unsecure());
                 let hash = digest.as_ref();
-                assert_eq!(hash.len(), 20);
+                assert_eq!(hash.len(), SHA1_BYTE_LENGTH);
 
                 let record = SavedHash {
                     // url, username gets moved in here
@@ -128,7 +130,7 @@ mod test {
     fn test_hash_failed() {
         assert_ne!(
             HEXLOWER.encode(hash_pass("fail".as_bytes()).as_ref()),
-            "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d"
+            HASH_EXPECTED
         )
     }
 

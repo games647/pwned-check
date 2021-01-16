@@ -6,6 +6,8 @@ const PASSWORD_KEY: &str = "passwords_file";
 const HASH_KEY: &str = "hash_file";
 const VERBOSE_KEY: &str = "verbose";
 
+const SHA1_BYTE_LENGTH: usize = 20;
+
 fn main() {
     let matches = create_cli_options().get_matches();
 
@@ -99,7 +101,7 @@ mod test {
 
         assert!(!matches.is_ok(), "CLI parse result {:?}", matches);
 
-        let matches = create_cli_options().try_get_matches_from(&args[0..0]);
+        let matches = create_cli_options().try_get_matches_from(&args[..0]);
         assert!(!matches.is_ok(), "CLI parse result {:?}", matches);
     }
 }

@@ -9,28 +9,30 @@ use rand::{distributions::Alphanumeric, prelude::*};
 use rayon::prelude::*;
 use ring::digest::{digest, Digest, SHA1_FOR_LEGACY_USE_ONLY};
 
+const PASSWORD_BYTE_SIZE: usize = 32;
+
 /// sequential hashing of bytes to the hex string representation
-fn hash_sequential(data: &[[u8; 32]]) -> Vec<String> {
+fn hash_sequential(data: &[[u8; PASSWORD_BYTE_SIZE]]) -> Vec<String> {
     data.iter().map(|x| hash_string(x)).collect()
 }
 
 /// hash sequential, but keep the byte representation
-fn hash_bytes_sequential(data: &[[u8; 32]]) -> Vec<Digest> {
+fn hash_bytes_sequential(data: &[[u8; PASSWORD_BYTE_SIZE]]) -> Vec<Digest> {
     data.iter().map(|x| hash_func(x)).collect()
 }
 
 /// parallel hashing with hex representation
-fn hash_threaded(data: &[[u8; 32]]) -> Vec<String> {
+fn hash_threaded(data: &[[u8; PASSWORD_BYTE_SIZE]]) -> Vec<String> {
     data.par_iter().map(|x| hash_string(x)).collect()
 }
 
 /// parallel hashing but keeping the byte representation
-fn hash_bytes_threaded(data: &[[u8; 32]]) -> Vec<Digest> {
+fn hash_bytes_threaded(data: &[[u8; PASSWORD_BYTE_SIZE]]) -> Vec<Digest> {
     data.par_iter().map(|x| hash_func(x)).collect()
 }
 
 /// parallel hashing but keeping the byte representation
-fn hash_bytes_channel(data: &[[u8; 32]]) -> Vec<Digest> {
+fn hash_bytes_channel(data: &[[u8; PASSWORD_BYTE_SIZE]]) -> Vec<Digest> {
     // data channel (function data) with input (send) and output (rec)
     let size = data.len();
     let (data_send, data_rec) = bounded(size);
@@ -39,7 +41,7 @@ fn hash_bytes_channel(data: &[[u8; 32]]) -> Vec<Digest> {
     // end is exclusive so start with 0
     thread::scope(|scope| {
         for _ in 0..num_cpus::get() {
-            let local_data_rec: Receiver<&[u8; 32]> = data_rec.clone();
+            let local_data_rec: Receiver<&[u8; PASSWORD_BYTE_SIZE]> = data_rec.clone();
             let local_hash_send = hash_send.clone();
             scope.spawn(move |_| {
                 for input in local_data_rec {
@@ -78,7 +80,7 @@ fn hash_func(x: &[u8]) -> Digest {
 fn create_scrambled_data(size: usize) -> Vec<[u8; 32]> {
     (0..size)
         .map(|_| {
-            let mut buf: [u8; 32] = [0; 32];
+            let mut buf: [u8; PASSWORD_BYTE_SIZE] = [0; PASSWORD_BYTE_SIZE];
             for x in buf.iter_mut() {
                 *x = rand::thread_rng().sample(&Alphanumeric);
             }
