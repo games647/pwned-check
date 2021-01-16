@@ -22,7 +22,6 @@ Feedback appreciated.
 ## ToDo
 
 * Optimizations:
-    * Drop repeatable allocations for the decoded Hex string in find
     * Evaluate different hashing algorithm
     * Evaluate binary ordered trees  
     * Evaluate tuple searching - like hashbrown

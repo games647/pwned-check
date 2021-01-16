@@ -24,24 +24,36 @@ enum ParseHashError {
     InvalidFormat(),
 }
 
+fn parse_into(input: &[u8], dest: &mut PwnedHash) -> Result<(), ParseHashError> {
+    assert!(&[input[40]] == b":");
+    assert!(input.len() > 41);
+
+    let hash_part = &input[0..40];
+
+    decode_hex_into(hash_part, &mut dest.hash);
+
+    // TODO: parse this lazily
+    let count = atoi::<u32>(&input[41..]).ok_or(IntError())?;
+    dest.count = count;
+    Ok(())
+}
+
+fn decode_hex_into(input: &[u8], dest: &mut [u8]) {
+    let len = HEXUPPER.decode_mut(input, dest).unwrap();
+    assert_eq!(len, 20);
+}
+
 impl TryFrom<&[u8]> for PwnedHash {
     type Error = ParseHashError;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        assert!(&[value[40]] == b":");
-        assert!(value.len() > 41);
+        let mut record = PwnedHash {
+            hash: [0; 20],
+            count: 0,
+        };
 
-        let hash_part = &value[0..40];
-
-        // TODO: drop alloc
-        let mut hash: [u8; 20] = [0; 20];
-        let len = HEXUPPER.decode_mut(hash_part, &mut hash).unwrap();
-        assert_eq!(len, 20);
-
-        // TODO: parse this lazily
-        let count = atoi::<u32>(&value[41..]).ok_or(IntError())?;
-
-        Ok(PwnedHash { hash, count })
+        parse_into(value, &mut record)?;
+        Ok(record)
     }
 }
 
@@ -53,12 +65,17 @@ pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
         .map(|x| (x.password_hash.as_ref(), x))
         .collect();
 
+    // re-use hash buffer to reduce the number of allocations
+    let mut record: PwnedHash = PwnedHash {
+        hash: [0; 20],
+        count: 0,
+    };
+
     BufReader::new(hash_file)
         // reads line-by-line including re-use the allocation
         // so we don't need to convert it to UTF-8 or make an extra allocation
         .for_byte_line(|line| {
-            // TODO: drop alloc here
-            let record: PwnedHash = line.try_into().unwrap();
+            parse_into(line, &mut record).unwrap();
             if let Some(saved) = map.get(&record.hash[0..]) {
                 let count = record.count;
                 println!(
