@@ -94,14 +94,12 @@ mod test {
 
     #[test]
     fn test_missing_file() {
-        let mut args = vec!["pwned-check"];
+        let args = ["pwned-check", "file.txt"];
         let matches = create_cli_options().try_get_matches_from(&args);
 
         assert!(!matches.is_ok(), "CLI parse result {:?}", matches);
 
-        args.push("file.txt");
-        let matches = create_cli_options().try_get_matches_from(&args);
-
+        let matches = create_cli_options().try_get_matches_from(&args[0..0]);
         assert!(!matches.is_ok(), "CLI parse result {:?}", matches);
     }
 }
