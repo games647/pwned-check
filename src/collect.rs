@@ -93,8 +93,11 @@ fn read_passwords(
     tx: Sender<SavedPassword>,
     mut file_reader: csv::Reader<impl Read>,
 ) -> Result<(), SendError<SavedPassword>> {
-    for result in file_reader.deserialize() {
-        let record: SavedPassword = result.unwrap();
+    let headers = file_reader.headers().unwrap().clone();
+
+    let mut buffer = csv::StringRecord::new();
+    while file_reader.read_record(&mut buffer).unwrap() {
+        let record: SavedPassword = buffer.deserialize(Some(&headers)).unwrap();
         tx.send(record)?;
     }
 
