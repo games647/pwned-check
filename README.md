@@ -21,10 +21,15 @@ Feedback appreciated.
 
 ## ToDo
 
-* Optimize searching in txt file
-* Fixed sized hash
-* In-place decoding for saved hashes and passwords
-    * Re-use allocations - reduce number of Vec during finding
+* Optimizations:
+    * Drop repeatable allocations for the decoded Hex string in find
+    * Evaluate different hashing algorithm
+    * Evaluate binary ordered trees  
+    * Evaluate tuple searching - like hashbrown
+    * Experiment with SIMD
+    * Ordered search in linear order
+    * Lazily parse hash count
+    * Fixed sized hash
 * Benchmark - Criterion
     * Multi Threaded file reading (Consumer) vs No Copy
 * Properly structure it using error objects (removing `unwrap`)

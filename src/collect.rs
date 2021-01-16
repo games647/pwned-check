@@ -1,14 +1,15 @@
 use std::{
     fmt::Display,
+    fmt::Formatter,
     hash::{Hash, Hasher},
     io::Read,
-    thread,
+    thread
 };
 
 use crossbeam_channel::{bounded, Receiver, Sender, SendError};
 use ring::digest::{digest, Digest, SHA1_FOR_LEGACY_USE_ONLY};
 use secstr::SecStr;
-use serde::{Deserialize, export::Formatter};
+use serde::Deserialize;
 
 const PASSWORD_BUFFER: usize = 128;
 
@@ -51,10 +52,9 @@ pub fn collect_hashes(password_reader: csv::Reader<impl Read>) -> Result<Vec<Sav
         let local_done = done.clone();
         thread::spawn(move || {
             for in_record in local_rx {
-                let x: SecStr = in_record.password;
-
-                let password_hash = hash_pass(x.unsecure());
+                let password_hash = hash_pass(in_record.password.unsecure());
                 let record = SavedHash {
+                    // url, username gets moved in here
                     url: in_record.url,
                     username: in_record.username,
                     password_hash,

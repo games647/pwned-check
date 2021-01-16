@@ -15,6 +15,7 @@ use crate::find::ParseHashError::*;
 
 #[derive(Debug)]
 struct PwnedHash {
+    // TODO: use fixed array, because we know the exact size
     hash: Vec<u8>,
     count: u32,
 }
@@ -31,9 +32,11 @@ impl TryFrom<&[u8]> for PwnedHash {
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         assert!(&[value[40]] == b":");
 
+        // TODO: drop alloc
         let hash_part = &value[0..40];
         let hash = HEXUPPER.decode(&hash_part).unwrap();
 
+        // TODO: parse this lazily
         let count = atoi::<u32>(&value[41..]).ok_or(IntError())?;
 
         Ok(PwnedHash { hash, count })
@@ -52,6 +55,7 @@ pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
         // reads line-by-line including re-use the allocation
         // so we don't need to convert it to UTF-8 or make an extra allocation
         .for_byte_line(|line| {
+            // TODO: drop alloc here
             let record: PwnedHash = line.try_into().unwrap();
             if let Some(saved) = map.get(record.hash.as_slice()) {
                 let count = record.count;
