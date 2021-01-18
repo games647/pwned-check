@@ -21,8 +21,6 @@ Feedback appreciated.
 
 ## ToDo
 
-* Benchmark - Criterion
-    * Multi Threaded file reading (Consumer) vs No Copy
 * Properly structure it using error objects (removing `unwrap`)
 
 ## Password recommendations

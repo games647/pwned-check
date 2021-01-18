@@ -97,3 +97,7 @@ harness = false
 [[bench]]
 name = "find"
 harness = false
+
+[[bench]]
+name = "memory"
+harness = false
