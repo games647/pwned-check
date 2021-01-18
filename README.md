@@ -21,12 +21,6 @@ Feedback appreciated.
 
 ## ToDo
 
-* Optimizations:
-    * Evaluate different hashing algorithm
-    * Evaluate binary ordered trees  
-    * Evaluate tuple searching - like hashbrown
-    * Experiment with SIMD
-    * Ordered search in linear order
 * Benchmark - Criterion
     * Multi Threaded file reading (Consumer) vs No Copy
 * Properly structure it using error objects (removing `unwrap`)
@@ -118,6 +112,7 @@ https://llogiq.github.io/2017/06/01/perf-pitfalls.html
 * Iterate rather than an index loop
 * Avoid collect in intermediate variables
 * Static values could use arrays instead of `Vec<T>`
+* Use slices instead of vec
 * mem::replace when switching values
 * Keep attention to passing closures vs invoking them directly
     * Ex: Mapping to a default value

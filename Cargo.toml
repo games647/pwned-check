@@ -39,11 +39,16 @@ serde = { version = "1", features = ["derive"] }
 # Much faster implementation for converting byte to hex instead of using `.map(|x| format!("{:02x}", x))`
 data-encoding = "2.3"
 
-# Line reading in bytes
-bstr = "0.2"
-
 # Convert bytes of ASCII to numbers
 atoi = "0.4"
+
+# Line reading in bytes
+[dependencies.bstr]
+version = "0.2"
+
+# Disable unicode
+default-features = false
+features = ["std"]
 
 # CLI argument parsing with custom selection of features similar to serde
 [dependencies.clap]
@@ -53,8 +58,9 @@ version = "3.0.0-beta.2"
 default-features = false
 features = ["color", "derive", "std", "cargo"]
 
-# Allows asserting to patterns - in this case easier for using assert_eq with nightly APIs
+# Dependencies for dev environments like tests and benchmarks
 [dev-dependencies]
+# Allows asserting to patterns - in this case easier for using assert_eq with nightly APIs
 assert_matches = "1.4"
 
 # Benchmarking tool, because #[bench] is a nightly only feature at the moment
@@ -66,6 +72,14 @@ rand = "0.8"
 
 # Support for SIMD instructions
 packed_simd_2 = "0.3"
+
+# Alternative to hashset/map for more memory local indicies
+indexmap = "1.6"
+
+# Custom hasher implementations, but both are without DoS protection
+
+# This has the possible to hash multiple bytes at the same time
+fxhash = "0.2"
 
 # Benchmark names
 
