@@ -8,7 +8,6 @@ use std::{
 use atoi::atoi;
 use bstr::io::BufReadExt;
 use data_encoding::HEXUPPER;
-
 use lazy_init::Lazy;
 
 use crate::collect::SavedHash;
@@ -35,18 +34,21 @@ impl PwnedHash {
         }
     }
 
-    fn parse_into(&mut self, input: &[u8]) -> Result<(), ParseHashError> {
-        assert!(&[input[40]] == b":");
-        assert!(input.len() > 41);
+    fn parse_hash(&mut self, line: &[u8]) -> Result<(), ParseHashError> {
+        assert!(&[line[40]] == b":");
 
-        let hash_part = &input[..40];
-        let len = HEXUPPER.decode_mut(hash_part, &mut self.hash).unwrap();
+        let hash_part = &line[..40];
+        let len = HEXUPPER
+            .decode_mut(hash_part, &mut self.hash)
+            .map_err(|_| InvalidFormat())?;
         assert_eq!(len, SHA1_BYTE_LENGTH);
         Ok(())
     }
 
-    fn parse_count(&mut self, input: &[u8]) -> &Result<u32, ParseHashError> {
-        self.count.get_or_create(|| atoi::<u32>(&input[41..]).ok_or(IntError()))
+    fn parse_count(&mut self, line: &[u8]) -> &Result<u32, ParseHashError> {
+        assert!(line.len() > 41);
+        self.count
+            .get_or_create(|| atoi::<u32>(&line[41..]).ok_or(IntError()))
     }
 }
 
@@ -55,7 +57,7 @@ impl TryFrom<&[u8]> for PwnedHash {
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         let mut record = PwnedHash::empty();
-        record.parse_into(value)?;
+        record.parse_hash(value)?;
         Ok(record)
     }
 }
@@ -75,13 +77,12 @@ pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
         // reads line-by-line including re-use the allocation
         // so we don't need to convert it to UTF-8 or make an extra allocation
         .for_byte_line(|line| {
-            record.parse_into(line).unwrap();
+            record.parse_hash(line).unwrap();
             if let Some(saved) = map.get(&record.hash[0..]) {
                 let count = record.parse_count(line).as_ref().unwrap();
                 println!(
                     "Your password for the following account {} has been pwned {}x times",
-                    saved,
-                    count
+                    saved, count
                 );
             }
 
@@ -207,10 +208,7 @@ mod test {
     fn test_parse() {
         let bytes_line = TEST_LINE.as_bytes();
         let mut record: PwnedHash = bytes_line.try_into().unwrap();
-        assert_matches!(
-            record.parse_count(bytes_line),
-            Ok(4)
-        );
+        assert_matches!(record.parse_count(bytes_line), Ok(4));
         assert_eq!(
             HEXUPPER.encode(&record.hash),
             "000000005AD76BD555C1D6D771DE417A4B87E4B4"
