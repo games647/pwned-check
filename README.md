@@ -81,6 +81,7 @@ Then you can find the executable in the `target/release` directory
     * Fmt (`cargo fmt`) - Formatter
     * Check (`cargo check`) - Compile check
     * Documentation testing
+* AsRef for cheap conversions
 * Building arrays at compile time is only possible with `const fn`, but it forbids a lot of things like for
     * Code generation with `build.rs` is also possible, but complicated
     * Alternative: Crates like `init_with`

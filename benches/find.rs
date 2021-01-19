@@ -116,8 +116,8 @@ fn find_benchmark(c: &mut Criterion) {
     let mut sorted = hays_max.clone();
     sorted.sort_unstable();
 
-    let custom_data: Vec<SimdHolder> = data.iter().map(|x| SimdHolder { data: *x }).collect();
-    let custom_hay: Vec<SimdHolder> = hays_max.iter().map(|x| SimdHolder { data: *x }).collect();
+    let custom_data: Vec<SimdHolder> = data.iter().map(|&x| SimdHolder { data: x }).collect();
+    let custom_hay: Vec<SimdHolder> = hays_max.iter().map(|&x| SimdHolder { data: x }).collect();
 
     for &hay_size in &[32, 64, 128, 256] {
         let hays = &hays_max[..hay_size];

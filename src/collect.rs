@@ -26,7 +26,7 @@ pub struct SavedHash {
 
 impl Hash for SavedHash {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.password_hash.as_ref().hash(state);
+        self.password_hash.hash(state);
     }
 }
 
@@ -44,7 +44,7 @@ impl Ord for SavedHash {
 
 impl PartialEq for SavedHash {
     fn eq(&self, other: &Self) -> bool {
-        self.password_hash.as_ref() == other.password_hash.as_ref()
+        self.password_hash == other.password_hash
     }
 }
 
@@ -131,7 +131,7 @@ mod test {
     #[test]
     fn test_hash() {
         assert_eq!(
-            HEXLOWER.encode(hash_pass("hello".as_bytes()).as_ref()),
+            HEXLOWER.encode(hash_pass(b"hello").as_ref()),
             HASH_EXPECTED
         )
     }
@@ -139,14 +139,14 @@ mod test {
     #[test]
     fn test_hash_failed() {
         assert_ne!(
-            HEXLOWER.encode(hash_pass("fail".as_bytes()).as_ref()),
+            HEXLOWER.encode(hash_pass(b"fail").as_ref()),
             HASH_EXPECTED
         )
     }
 
     #[test]
     fn parse_chromium_csv() -> Result<(), csv::Error> {
-        let data = "name,url,username,password
+        let data = b"name,url,username,password
 hello,https://www.rust-lang.org/,user,pass";
         validate_parse(data)
     }
@@ -156,11 +156,11 @@ hello,https://www.rust-lang.org/,user,pass";
         // use r#"XYZ"# to escape " inside the string - Warning " are also necessary
         let data = r#""url","username","password","httpRealm","formActionOrigin","guid","timeCreated","timeLastUsed","timePasswordChanged""
 ""https://www.rust-lang.org/","user","pass",,"https://www.rust-lang.org/","{00000000-0000-0000-0000-0000000000000000}","-1","-2","-3""#;
-        validate_parse(data)
+        validate_parse(data.as_bytes())
     }
 
-    fn validate_parse(data: &str) -> Result<(), csv::Error> {
-        let mut reader = csv::Reader::from_reader(data.as_bytes());
+    fn validate_parse(data: &[u8]) -> Result<(), csv::Error> {
+        let mut reader = csv::Reader::from_reader(data);
         for result in reader.deserialize() {
             let record: SavedPassword = result?;
             assert_eq!(record.url, "https://www.rust-lang.org/");
