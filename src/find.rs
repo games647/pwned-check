@@ -51,6 +51,7 @@ impl TryFrom<&[u8]> for PwnedHash {
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         let mut record = PwnedHash::default();
         record.parse_hash(value)?;
+        record.parse_count(value);
         Ok(record)
     }
 }
@@ -200,8 +201,8 @@ mod test {
     #[test]
     fn test_parse() {
         let bytes_line = TEST_LINE.as_bytes();
-        let mut record: PwnedHash = bytes_line.try_into().unwrap();
-        assert_matches!(record.parse_count(bytes_line), Ok(4));
+        let record: PwnedHash = bytes_line.try_into().unwrap();
+        assert_matches!(record.count.get().unwrap(), Ok(4));
         assert_eq!(
             HEXUPPER.encode(&record.hash),
             "000000005AD76BD555C1D6D771DE417A4B87E4B4"
@@ -211,8 +212,8 @@ mod test {
     #[test]
     fn test_number_parse_error() {
         let bytes_line = INVALID_INT.as_bytes();
-        let mut record: PwnedHash = bytes_line.try_into().unwrap();
-        let res = record.parse_count(bytes_line);
+        let record: PwnedHash = bytes_line.try_into().unwrap();
+        let res = record.count.get().unwrap();
         assert_matches!(res, Err(IntError()));
     }
 }
