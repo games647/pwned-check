@@ -1,12 +1,15 @@
 use std::{fs::File, io::Read};
 
 use clap::{App, Arg, crate_description, crate_name, crate_version};
+use ring::digest::SHA1_OUTPUT_LEN;
 
 const PASSWORD_KEY: &str = "passwords_file";
 const HASH_KEY: &str = "hash_file";
 const VERBOSE_KEY: &str = "verbose";
 
-const SHA1_BYTE_LENGTH: usize = 20;
+const SHA1_BYTE_LENGTH: usize = SHA1_OUTPUT_LEN;
+
+type Sha1Hash = [u8; SHA1_BYTE_LENGTH];
 
 fn main() {
     let matches = create_cli_options().get_matches();

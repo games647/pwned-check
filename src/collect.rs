@@ -13,7 +13,7 @@ use ring::digest::{digest, Digest, SHA1_FOR_LEGACY_USE_ONLY};
 use secstr::SecStr;
 use serde::Deserialize;
 
-use crate::SHA1_BYTE_LENGTH;
+use crate::{SHA1_BYTE_LENGTH, Sha1Hash};
 
 const PASSWORD_BUFFER: usize = 128;
 
@@ -21,7 +21,7 @@ const PASSWORD_BUFFER: usize = 128;
 pub struct SavedHash {
     url: String,
     username: String,
-    pub password_hash: [u8; SHA1_BYTE_LENGTH],
+    pub password_hash: Sha1Hash,
 }
 
 impl Hash for SavedHash {

@@ -10,13 +10,13 @@ use bstr::io::BufReadExt;
 use data_encoding::HEXUPPER;
 use lazy_init::Lazy;
 
+use crate::{SHA1_BYTE_LENGTH, Sha1Hash};
 use crate::collect::SavedHash;
 use crate::find::ParseHashError::*;
-use crate::SHA1_BYTE_LENGTH;
 
 #[derive(Debug, Default)]
 struct PwnedHash {
-    hash: [u8; SHA1_BYTE_LENGTH],
+    hash: Sha1Hash,
     count: Lazy<Result<u32, ParseHashError>>,
 }
 
@@ -58,9 +58,9 @@ impl TryFrom<&[u8]> for PwnedHash {
 pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
     // make a copy of this hash rather than below (at the get call), because it's more likely that
     // there are fewer saved passwords than in the database
-    let map: HashMap<&[u8], &SavedHash> = hashes
+    let map: HashMap<&Sha1Hash, &SavedHash> = hashes
         .iter()
-        .map(|x| (x.password_hash.as_ref(), x))
+        .map(|x| (&x.password_hash, x))
         .collect();
 
     // re-use hash buffer to reduce the number of allocations
@@ -71,7 +71,7 @@ pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
         // so we don't need to convert it to UTF-8 or make an extra allocation
         .for_byte_line(|line| {
             record.parse_hash(line).unwrap();
-            if let Some(saved) = map.get(&record.hash[0..]) {
+            if let Some(saved) = map.get(&record.hash) {
                 let count = record.parse_count(line).as_ref().unwrap();
                 println!(
                     "Your password for the following account {} has been pwned {}x times",
