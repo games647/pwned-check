@@ -14,7 +14,7 @@ use crate::collect::SavedHash;
 use crate::find::ParseHashError::*;
 use crate::SHA1_BYTE_LENGTH;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct PwnedHash {
     hash: [u8; SHA1_BYTE_LENGTH],
     count: Lazy<Result<u32, ParseHashError>>,
@@ -27,13 +27,6 @@ enum ParseHashError {
 }
 
 impl PwnedHash {
-    fn empty() -> PwnedHash {
-        PwnedHash {
-            hash: [0; SHA1_BYTE_LENGTH],
-            count: Lazy::new(),
-        }
-    }
-
     fn parse_hash(&mut self, line: &[u8]) -> Result<(), ParseHashError> {
         assert!(&[line[40]] == b":");
 
@@ -56,7 +49,7 @@ impl TryFrom<&[u8]> for PwnedHash {
     type Error = ParseHashError;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        let mut record = PwnedHash::empty();
+        let mut record = PwnedHash::default();
         record.parse_hash(value)?;
         Ok(record)
     }
@@ -71,7 +64,7 @@ pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
         .collect();
 
     // re-use hash buffer to reduce the number of allocations
-    let mut record: PwnedHash = PwnedHash::empty();
+    let mut record: PwnedHash = PwnedHash::default();
 
     BufReader::new(hash_file)
         // reads line-by-line including re-use the allocation
