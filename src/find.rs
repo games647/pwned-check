@@ -8,7 +8,6 @@ use std::{
 use atoi::atoi;
 use bstr::io::BufReadExt;
 use data_encoding::HEXUPPER;
-use lazy_init::Lazy;
 
 use crate::{SHA1_BYTE_LENGTH, Sha1Hash};
 use crate::collect::SavedHash;
@@ -17,7 +16,7 @@ use crate::find::ParseHashError::*;
 #[derive(Debug, Default)]
 struct PwnedHash {
     hash: Sha1Hash,
-    count: Lazy<Result<u32, ParseHashError>>,
+    count: Option<Result<u32, ParseHashError>>,
 }
 
 #[derive(Debug)]
@@ -27,7 +26,7 @@ enum ParseHashError {
 }
 
 impl PwnedHash {
-    fn parse_hash(&mut self, line: &[u8]) -> Result<(), ParseHashError> {
+    fn parse_new_hash(&mut self, line: &[u8]) -> Result<(), ParseHashError> {
         assert!(&[line[40]] == b":");
 
         let hash_part = &line[..40];
@@ -35,13 +34,16 @@ impl PwnedHash {
             .decode_mut(hash_part, &mut self.hash)
             .map_err(|_| InvalidFormat())?;
         assert_eq!(len, SHA1_BYTE_LENGTH);
+        self.count = None;
         Ok(())
     }
 
     fn parse_count(&mut self, line: &[u8]) -> &Result<u32, ParseHashError> {
         assert!(line.len() > 41);
-        self.count
-            .get_or_create(|| atoi::<u32>(&line[41..]).ok_or(IntError()))
+
+        let res = atoi::<u32>(&line[41..]).ok_or(IntError());
+        self.count = Some(res);
+        self.count.as_ref().unwrap()
     }
 }
 
@@ -50,7 +52,7 @@ impl TryFrom<&[u8]> for PwnedHash {
 
     fn try_from(line: &[u8]) -> Result<Self, Self::Error> {
         let mut record = PwnedHash::default();
-        record.parse_hash(line)?;
+        record.parse_new_hash(line)?;
         record.parse_count(line);
         Ok(record)
     }
@@ -71,7 +73,7 @@ pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
         // reads line-by-line including re-use the allocation
         // so we don't need to convert it to UTF-8 or make an extra allocation
         .for_byte_line(|line| {
-            record.parse_hash(line).unwrap();
+            record.parse_new_hash(line).unwrap();
             if let Some(saved) = map.get(&record.hash) {
                 let count = record.parse_count(line).as_ref().unwrap();
                 println!(
@@ -202,7 +204,24 @@ mod test {
     fn test_parse() {
         let bytes_line = TEST_LINE.as_bytes();
         let record: PwnedHash = bytes_line.try_into().unwrap();
-        assert_matches!(record.count.get().unwrap(), Ok(4));
+        assert_matches!(record.count.unwrap(), Ok(4));
+        assert_eq!(
+            HEXUPPER.encode(&record.hash),
+            "000000005AD76BD555C1D6D771DE417A4B87E4B4"
+        );
+    }
+
+    #[test]
+    fn test_overriding() {
+        let mut record: PwnedHash = PwnedHash { hash: [0; SHA1_BYTE_LENGTH], count: Some(Ok(2)) };
+
+        let bytes_line = TEST_LINE.as_bytes();
+        record.parse_new_hash(bytes_line).unwrap();
+        assert_matches!(record.count, None);
+
+        assert_matches!(record.parse_count(bytes_line), Ok(4));
+        assert_matches!(record.count, Some(Ok(4)));
+
         assert_eq!(
             HEXUPPER.encode(&record.hash),
             "000000005AD76BD555C1D6D771DE417A4B87E4B4"
@@ -213,7 +232,7 @@ mod test {
     fn test_number_parse_error() {
         let bytes_line = INVALID_INT.as_bytes();
         let record: PwnedHash = bytes_line.try_into().unwrap();
-        let res = record.count.get().unwrap();
+        let res = record.count.unwrap();
         assert_matches!(res, Err(IntError()));
     }
 }

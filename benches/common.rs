@@ -1,5 +1,3 @@
-use std::convert::TryInto;
-
 use rand::prelude::*;
 
 /// 32 * byte fits perfects into 256bit SIMD lane width which is more wide spread across users
