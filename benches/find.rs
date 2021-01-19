@@ -3,91 +3,63 @@
 ///
 /// https://github.com/tkaitchuck/aHash/blob/master/compare/readme.md#Speed
 use std::collections::{BTreeSet, HashSet};
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use fxhash::FxBuildHasher;
 use indexmap::set::IndexSet;
 use packed_simd_2::u8x32;
-use rand::prelude::*;
 use rayon::prelude::*;
 
-const RECORD_BYTE_SIZE: usize = 32;
+use common::Record;
 
-fn default_set_find(
-    data: &[[u8; RECORD_BYTE_SIZE]],
-    hays: &HashSet<&[u8; RECORD_BYTE_SIZE]>,
-) -> usize {
-    data.iter().filter(|x| hays.contains(*x)).count()
+mod common;
+
+fn default_set_find(data: &[Record], hays: &HashSet<&Record>) -> usize {
+    data.iter().filter(|&x| hays.contains(x)).count()
 }
 
-fn fx_set_find(
-    data: &[[u8; RECORD_BYTE_SIZE]],
-    hays: &HashSet<&[u8; RECORD_BYTE_SIZE], FxBuildHasher>,
-) -> usize {
-    data.iter().filter(|x| hays.contains(*x)).count()
+fn fx_set_find(data: &[Record], hays: &HashSet<&Record, FxBuildHasher>) -> usize {
+    data.iter().filter(|&x| hays.contains(x)).count()
 }
 
 fn custom_fx_set_find(data: &[SimdHolder], hays: &HashSet<&SimdHolder, FxBuildHasher>) -> usize {
-    data.iter().filter(|x| hays.contains(*x)).count()
+    data.iter().filter(|&x| hays.contains(x)).count()
 }
 
-fn tree_set_find(
-    data: &[[u8; RECORD_BYTE_SIZE]],
-    hays: &BTreeSet<&[u8; RECORD_BYTE_SIZE]>,
-) -> usize {
-    data.iter().filter(|x| hays.contains(*x)).count()
+fn tree_set_find(data: &[Record], hays: &BTreeSet<&Record>) -> usize {
+    data.iter().filter(|&x| hays.contains(x)).count()
 }
 
-fn index_map_find_fx(
-    data: &[[u8; RECORD_BYTE_SIZE]],
-    hays: &IndexSet<&[u8; RECORD_BYTE_SIZE], FxBuildHasher>,
-) -> usize {
-    data.iter().filter(|x| hays.contains(*x)).count()
+fn index_map_find_fx(data: &[Record], hays: &IndexSet<&Record, FxBuildHasher>) -> usize {
+    data.iter().filter(|&x| hays.contains(x)).count()
 }
 
-fn array_find(data: &[[u8; RECORD_BYTE_SIZE]], hays: &[[u8; RECORD_BYTE_SIZE]]) -> usize {
-    data.iter().filter(|x| hays.contains(*x)).count()
+fn array_find(data: &[Record], hays: &[Record]) -> usize {
+    data.iter().filter(|&x| hays.contains(x)).count()
 }
 
-fn array_par_find(data: &[[u8; RECORD_BYTE_SIZE]], hays: &[[u8; RECORD_BYTE_SIZE]]) -> usize {
-    data.par_iter().filter(|x| hays.contains(*x)).count()
+fn array_par_find(data: &[Record], hays: &[Record]) -> usize {
+    data.par_iter().filter(|&x| hays.contains(x)).count()
 }
 
-fn array_simd_equal_find(
-    data: &[[u8; RECORD_BYTE_SIZE]],
-    hays: &[[u8; RECORD_BYTE_SIZE]],
-) -> usize {
-    data.iter()
-        .filter(|x| {
-            hays.iter().any(|h| {
-                u8x32::from_slice_unaligned(&x[0..])
-                    .eq(u8x32::from_slice_unaligned(h))
-                    .all()
-            })
-        })
-        .count()
+fn array_simd_equal_find(data: &[Record], hays: &[Record]) -> usize {
+    data.iter().filter(|&x| simd_contains(hays, x)).count()
 }
 
-fn array_par_simd_equal_find(
-    data: &[[u8; RECORD_BYTE_SIZE]],
-    hays: &[[u8; RECORD_BYTE_SIZE]],
-) -> usize {
-    data.par_iter()
-        .filter(|x| {
-            hays.iter().any(|h| {
-                u8x32::from_slice_unaligned(&x[0..])
-                    .eq(u8x32::from_slice_unaligned(h))
-                    .all()
-            })
-        })
-        .count()
+fn array_par_simd_equal_find(data: &[Record], hays: &[Record]) -> usize {
+    data.par_iter().filter(|&x| simd_contains(hays, x)).count()
 }
 
-fn array_simd_ordered_find(
-    data: &[[u8; RECORD_BYTE_SIZE]],
-    hays: &[[u8; RECORD_BYTE_SIZE]],
-) -> usize {
+fn simd_contains(hays: &[Record], x: &Record) -> bool {
+    hays.iter().any(|h| {
+        u8x32::from_slice_unaligned(x)
+            .eq(u8x32::from_slice_unaligned(h))
+            .all()
+    })
+}
+
+fn array_simd_ordered_find(data: &[Record], hays: &[Record]) -> usize {
     let max = hays.len();
     let mut count = 0;
 
@@ -115,16 +87,15 @@ fn array_simd_ordered_find(
     count
 }
 
-fn create_scrambled_data(size: usize) -> Vec<[u8; RECORD_BYTE_SIZE]> {
-    (0..size).map(|_| rand::thread_rng().gen()).collect()
-}
-
 /// Struct which uses 512 bit SIMD for identity comparisons
+///
+/// We disregard clippy here, because this structs only one field and eq is only our custom impl
+/// of that comparison it doesn't have any effect on the equality
+#[allow(clippy::derive_hash_xor_eq)]
+#[derive(Eq, Hash)]
 struct SimdHolder {
-    data: [u8; 32],
+    data: Record,
 }
-
-impl Eq for SimdHolder {}
 
 impl PartialEq for SimdHolder {
     fn eq(&self, other: &Self) -> bool {
@@ -134,19 +105,14 @@ impl PartialEq for SimdHolder {
     }
 }
 
-impl Hash for SimdHolder {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.data.hash(state);
-    }
-}
-
 fn find_benchmark(c: &mut Criterion) {
     const DATA_SIZE: usize = 100_000;
+    const HAY_SIZE: usize = 256;
 
     let mut group = c.benchmark_group("find");
 
-    let data = create_scrambled_data(DATA_SIZE);
-    let hays_max = create_scrambled_data(256);
+    let data = common::create_scrambled_data(DATA_SIZE);
+    let hays_max = common::create_scrambled_data(HAY_SIZE);
     let mut sorted = hays_max.clone();
     sorted.sort_unstable();
 

@@ -1,9 +1,11 @@
 use core::iter;
 
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
-use rand::{prelude::*};
 use rand::distributions::Alphanumeric;
-use ring::digest::{Digest, digest, SHA1_FOR_LEGACY_USE_ONLY};
+use rand::prelude::*;
+use ring::digest::{digest, Digest, SHA1_FOR_LEGACY_USE_ONLY};
+
+mod common;
 
 fn expensive_fn(data: &[u8]) -> Digest {
     digest(&SHA1_FOR_LEGACY_USE_ONLY, data)
@@ -15,9 +17,7 @@ mod borrow {
     use crate::expensive_fn;
 
     pub fn fut(input: &[&str]) -> Vec<Digest> {
-        input.iter().map(|&x| {
-            expensive_fn(x.as_bytes())
-        }).collect()
+        input.iter().map(|&x| expensive_fn(x.as_bytes())).collect()
     }
 }
 
@@ -32,20 +32,30 @@ mod owned {
     }
 
     pub fn fut(input: &[&str]) -> Vec<Digest> {
-        input.iter().map(|&x| {
-            // explicit clone
-            let data = OwnedData { content: x.to_string() };
-            expensive_fn(data.content.as_bytes())
-        }).collect()
+        input
+            .iter()
+            .map(|&x| {
+                // explicit clone
+                let data = OwnedData {
+                    content: x.to_string(),
+                };
+                expensive_fn(data.content.as_bytes())
+            })
+            .collect()
     }
 
     pub fn fut_threaded(input: &[&str]) -> Vec<Digest> {
         let mut mapped = Vec::with_capacity(input.len());
         for &line in input {
-            mapped.push(OwnedData { content: line.to_string() })
+            mapped.push(OwnedData {
+                content: line.to_string(),
+            })
         }
 
-        mapped.par_iter().map(|x| expensive_fn(x.content.as_bytes())).collect()
+        mapped
+            .par_iter()
+            .map(|x| expensive_fn(x.content.as_bytes()))
+            .collect()
     }
 }
 
@@ -55,7 +65,7 @@ fn create_scrambled_data(size: usize) -> Vec<String> {
             iter::repeat(())
                 .map(|_| rand::thread_rng().sample(Alphanumeric))
                 .map(char::from)
-                .take(32)
+                .take(common::RECORD_BYTE_SIZE)
                 .collect()
         })
         .collect()
@@ -67,7 +77,7 @@ fn memory_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("Memory");
     let data = create_scrambled_data(SIZE);
 
-    let data: Vec<&str> = data.iter().map(|x| x.as_str()).collect();
+    let data: Vec<&str> = data.iter().map(String::as_str).collect();
 
     group.bench_with_input("Borrow", &data, |b, data| {
         b.iter_with_large_drop(|| borrow::fut(data));
@@ -78,7 +88,10 @@ fn memory_benchmark(c: &mut Criterion) {
     });
 
     for threads in (2..=num_cpus::get()).step_by(2) {
-        let pool = rayon::ThreadPoolBuilder::new().num_threads(threads).build().unwrap();
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .build()
+            .unwrap();
 
         let id = BenchmarkId::new("Owned (Threaded)", threads);
         group.bench_with_input(id, &data, |b, data| {

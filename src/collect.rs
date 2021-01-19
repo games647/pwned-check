@@ -16,7 +16,7 @@ use crate::SHA1_BYTE_LENGTH;
 
 const PASSWORD_BUFFER: usize = 128;
 
-#[derive(Debug)]
+#[derive(Debug, Eq)]
 pub struct SavedHash {
     url: String,
     username: String,
@@ -34,9 +34,6 @@ impl PartialEq for SavedHash {
         self.password_hash.as_ref() == other.password_hash.as_ref()
     }
 }
-
-// marker interface only
-impl Eq for SavedHash {}
 
 impl Display for SavedHash {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

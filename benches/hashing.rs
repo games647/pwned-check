@@ -1,38 +1,37 @@
-use std::convert::TryInto;
-
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use crossbeam_channel::{bounded, Receiver};
 use crossbeam_utils::thread;
 use data_encoding::HEXUPPER;
-use init_with::InitWith;
 use rand::{distributions::Alphanumeric, prelude::*};
 use rayon::prelude::*;
 use ring::digest::{digest, Digest, SHA1_FOR_LEGACY_USE_ONLY};
 
-const PASSWORD_BYTE_SIZE: usize = 32;
+use common::Record;
+
+mod common;
 
 /// sequential hashing of bytes to the hex string representation
-fn hash_sequential(data: &[[u8; PASSWORD_BYTE_SIZE]]) -> Vec<String> {
+fn hash_sequential(data: &[Record]) -> Vec<String> {
     data.iter().map(|x| hash_string(x)).collect()
 }
 
 /// hash sequential, but keep the byte representation
-fn hash_bytes_sequential(data: &[[u8; PASSWORD_BYTE_SIZE]]) -> Vec<Digest> {
+fn hash_bytes_sequential(data: &[Record]) -> Vec<Digest> {
     data.iter().map(|x| hash_func(x)).collect()
 }
 
 /// parallel hashing with hex representation
-fn hash_threaded(data: &[[u8; PASSWORD_BYTE_SIZE]]) -> Vec<String> {
+fn hash_threaded(data: &[Record]) -> Vec<String> {
     data.par_iter().map(|x| hash_string(x)).collect()
 }
 
 /// parallel hashing but keeping the byte representation
-fn hash_bytes_threaded(data: &[[u8; PASSWORD_BYTE_SIZE]]) -> Vec<Digest> {
+fn hash_bytes_threaded(data: &[Record]) -> Vec<Digest> {
     data.par_iter().map(|x| hash_func(x)).collect()
 }
 
 /// parallel hashing but keeping the byte representation
-fn hash_bytes_channel(data: &[[u8; PASSWORD_BYTE_SIZE]]) -> Vec<Digest> {
+fn hash_bytes_channel(data: &[Record]) -> Vec<Digest> {
     // data channel (function data) with input (send) and output (rec)
     let size = data.len();
     let (data_send, data_rec) = bounded(size);
@@ -41,7 +40,7 @@ fn hash_bytes_channel(data: &[[u8; PASSWORD_BYTE_SIZE]]) -> Vec<Digest> {
     // end is exclusive so start with 0
     thread::scope(|scope| {
         for _ in 0..num_cpus::get() {
-            let local_data_rec: Receiver<&[u8; PASSWORD_BYTE_SIZE]> = data_rec.clone();
+            let local_data_rec: Receiver<&Record> = data_rec.clone();
             let local_hash_send = hash_send.clone();
             scope.spawn(move |_| {
                 for input in local_data_rec {
@@ -77,10 +76,10 @@ fn hash_func(x: &[u8]) -> Digest {
 }
 
 /// create random bytes of data with each exactly 32 characters in size
-fn create_scrambled_data(size: usize) -> Vec<[u8; 32]> {
+fn create_scrambled_data(size: usize) -> Vec<Record> {
     (0..size)
         .map(|_| {
-            let mut buf: [u8; PASSWORD_BYTE_SIZE] = [0; PASSWORD_BYTE_SIZE];
+            let mut buf: Record = [0; common::RECORD_BYTE_SIZE];
             for x in buf.iter_mut() {
                 *x = rand::thread_rng().sample(&Alphanumeric);
             }
@@ -93,7 +92,7 @@ fn create_scrambled_data(size: usize) -> Vec<[u8; 32]> {
 fn hashing_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("Hashing");
 
-    let sizes = <[usize; 3]>::init_with_indices(|i| 10_usize.pow((i + 2).try_into().unwrap()));
+    let sizes = common::create_size_array();
     let data = create_scrambled_data(*sizes.last().unwrap());
     for &size in &sizes {
         let size_data = &data[0..size];
