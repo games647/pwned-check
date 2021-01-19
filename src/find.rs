@@ -1,11 +1,11 @@
 use std::{
     collections::HashMap,
-    convert::{TryFrom, TryInto},
+    convert::TryFrom,
     fs::File,
     io::BufReader,
 };
+use std::num::ParseIntError;
 
-use atoi::atoi;
 use bstr::io::BufReadExt;
 use data_encoding::HEXUPPER;
 
@@ -21,8 +21,15 @@ struct PwnedHash {
 
 #[derive(Debug)]
 enum ParseHashError {
-    IntError(),
+    IntError(ParseIntError),
     InvalidFormat(),
+}
+
+// automatically convert ParseIntError in our custom enum type IntError
+impl From<ParseIntError> for ParseHashError {
+    fn from(e: ParseIntError) -> Self {
+        IntError(e)
+    }
 }
 
 impl PwnedHash {
@@ -41,7 +48,15 @@ impl PwnedHash {
     fn parse_count(&mut self, line: &[u8]) -> &Result<u32, ParseHashError> {
         assert!(line.len() > 41);
 
-        let res = atoi::<u32>(&line[41..]).ok_or(IntError());
+        // this has the performance penalty of converting to UTF-8 instead of using ASCII bytes
+        // directly. However we likely don't call this method often, so it's negligible
+        // otherwise we could use the atoi crate
+        let count_part = &line[41..];
+        let res = std::str::from_utf8(&count_part)
+            .map_err(|_| InvalidFormat())
+            // use Ok(..?) to make use of the automatic error convert instead of map_err
+            .and_then(|s| Ok(s.parse()?));
+
         self.count = Some(res);
         self.count.as_ref().unwrap()
     }
@@ -89,6 +104,8 @@ pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
 
 #[cfg(test)]
 mod test {
+    use std::convert::TryInto;
+
     use assert_matches::assert_matches;
 
     use super::*;
@@ -98,7 +115,9 @@ mod test {
 
     // demonstration of owned and borrowed variants
     mod owned {
-        use std::num::ParseIntError;
+        // use std::num::ParseIntError;
+
+        use std::convert::TryInto;
 
         use super::*;
 
@@ -125,13 +144,6 @@ mod test {
             }
         }
 
-        // automatically convert ParseIntError in our custom enum type IntError
-        impl From<ParseIntError> for ParseHashError {
-            fn from(_: ParseIntError) -> Self {
-                IntError()
-            }
-        }
-
         #[test]
         fn test_parse_owned() {
             let record: HashRecordOwned = {
@@ -147,11 +159,13 @@ mod test {
         #[test]
         fn test_number_parse_owned_error() {
             let result: Result<HashRecordOwned, _> = INVALID_INT.to_string().try_into();
-            assert_matches!(result, Err(IntError()));
+            assert_matches!(result, Err(IntError(_)));
         }
     }
 
     mod borrow {
+        use std::convert::TryInto;
+
         use super::*;
 
         // Use &str for the hash to prevent allocations that are not necessary
@@ -196,7 +210,7 @@ mod test {
         #[test]
         fn test_number_parse_error_borrow() {
             let result: Result<PwnedHashBorrow<'_>, _> = INVALID_INT.try_into();
-            assert_matches!(result, Err(IntError()));
+            assert_matches!(result, Err(IntError(_)));
         }
     }
 
@@ -233,6 +247,6 @@ mod test {
         let bytes_line = INVALID_INT.as_bytes();
         let record: PwnedHash = bytes_line.try_into().unwrap();
         let res = record.count.unwrap();
-        assert_matches!(res, Err(IntError()));
+        assert_matches!(res, Err(IntError(_)));
     }
 }
