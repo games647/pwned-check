@@ -30,9 +30,6 @@ crossbeam-utils = "0.8"
 # Get the number of logical CPU
 num_cpus = "1.13"
 
-# Parallel iterator
-rayon = "1.5"
-
 # Serialization and deserialization library
 serde = { version = "1", features = ["derive"] }
 
@@ -69,6 +66,9 @@ criterion = "0.3"
 
 # Random generator
 rand = "0.8"
+
+# Parallel iterator
+rayon = "1.5"
 
 # Support for SIMD instructions
 packed_simd_2 = "0.3"
