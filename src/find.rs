@@ -48,10 +48,10 @@ impl PwnedHash {
 impl TryFrom<&[u8]> for PwnedHash {
     type Error = ParseHashError;
 
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+    fn try_from(line: &[u8]) -> Result<Self, Self::Error> {
         let mut record = PwnedHash::default();
-        record.parse_hash(value)?;
-        record.parse_count(value);
+        record.parse_hash(line)?;
+        record.parse_count(line);
         Ok(record)
     }
 }

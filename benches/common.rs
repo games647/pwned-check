@@ -1,6 +1,5 @@
 use std::convert::TryInto;
 
-use init_with::InitWith;
 use rand::prelude::*;
 
 /// 32 * byte fits perfects into 256bit SIMD lane width which is more wide spread across users
@@ -19,6 +18,4 @@ pub fn create_scrambled_data(size: usize) -> Vec<Record> {
 }
 
 #[allow(dead_code)]
-pub fn create_size_array() -> [usize; 3] {
-    <[usize; 3]>::init_with_indices(|i| 10_usize.pow((i + 2).try_into().unwrap()))
-}
+pub const SIZE_ARRAY: [usize; 3] = [100, 1_000, 10_000];

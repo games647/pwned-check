@@ -14,9 +14,6 @@ lazy-init = "0.4"
 # Clear memory of clear text credentials
 secstr = { version = "0.4", features = ["serde"] }
 
-# Statically generate array at compile time
-init_with = "1.1"
-
 # Crypto-library
 ring = "0.16"
 

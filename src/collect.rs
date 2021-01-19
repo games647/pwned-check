@@ -116,8 +116,8 @@ fn read_passwords(
     Ok(())
 }
 
-fn hash_pass(pass: &[u8]) -> Digest {
-    digest(&SHA1_FOR_LEGACY_USE_ONLY, pass)
+fn hash_pass(password_bytes: &[u8]) -> Digest {
+    digest(&SHA1_FOR_LEGACY_USE_ONLY, password_bytes)
 }
 
 #[cfg(test)]
@@ -159,8 +159,8 @@ hello,https://www.rust-lang.org/,user,pass";
         validate_parse(data.as_bytes())
     }
 
-    fn validate_parse(data: &[u8]) -> Result<(), csv::Error> {
-        let mut reader = csv::Reader::from_reader(data);
+    fn validate_parse(csv_data: &[u8]) -> Result<(), csv::Error> {
+        let mut reader = csv::Reader::from_reader(csv_data);
         for result in reader.deserialize() {
             let record: SavedPassword = result?;
             assert_eq!(record.url, "https://www.rust-lang.org/");

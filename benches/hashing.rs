@@ -12,7 +12,7 @@ mod common;
 
 /// sequential hashing of bytes to the hex string representation
 fn hash_sequential(data: &[Record]) -> Vec<String> {
-    data.iter().map(|x| hash_string(x)).collect()
+    data.iter().map(|x| hash_func(x)).map(|x| hex_encode(&x)).collect()
 }
 
 /// hash sequential, but keep the byte representation
@@ -22,7 +22,7 @@ fn hash_bytes_sequential(data: &[Record]) -> Vec<Digest> {
 
 /// parallel hashing with hex representation
 fn hash_threaded(data: &[Record]) -> Vec<String> {
-    data.par_iter().map(|x| hash_string(x)).collect()
+    data.par_iter().map(|x| hash_func(x)).map(|x| hex_encode(&x)).collect()
 }
 
 /// parallel hashing but keeping the byte representation
@@ -66,13 +66,13 @@ fn hash_bytes_channel(data: &[Record]) -> Vec<Digest> {
 }
 
 /// hash and format to the hex representation
-fn hash_string(x: &[u8]) -> String {
-    HEXUPPER.encode(hash_func(x).as_ref())
+fn hex_encode(hash_result: &Digest) -> String {
+    HEXUPPER.encode(hash_result.as_ref())
 }
 
 /// hashing function under test
-fn hash_func(x: &[u8]) -> Digest {
-    digest(&SHA1_FOR_LEGACY_USE_ONLY, x)
+fn hash_func(input_bytes: &[u8]) -> Digest {
+    digest(&SHA1_FOR_LEGACY_USE_ONLY, input_bytes)
 }
 
 /// create random bytes of data with each exactly 32 characters in size
@@ -92,7 +92,7 @@ fn create_scrambled_data(size: usize) -> Vec<Record> {
 fn hashing_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("Hashing");
 
-    let sizes = common::create_size_array();
+    let sizes = common::SIZE_ARRAY;
     let data = create_scrambled_data(*sizes.last().unwrap());
     for &size in &sizes {
         let size_data = &data[0..size];

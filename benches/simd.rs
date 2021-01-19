@@ -30,7 +30,7 @@ fn simd_equal_threaded(data: &[Record], hay: &Record) -> bool {
 fn simd_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("SIMD");
 
-    let sizes = common::create_size_array();
+    let sizes = common::SIZE_ARRAY;
     let data = common::create_scrambled_data(*sizes.last().unwrap());
     for &size in &sizes {
         let size_data = &data[0..size];
