@@ -56,7 +56,7 @@ fn run(password_reader: csv::Reader<impl Read>, hash_file: File) {
 
     // unstable is slightly faster than the normal search - we don't care about mixed equal
     // entries so lets use this
-    hashes.sort_unstable_by(|a, b| a.password_hash.as_ref().cmp(&b.password_hash.as_ref()));
+    hashes.sort_unstable();
     println!("Sorted");
 
     find::find_hash(&hash_file, &hashes);

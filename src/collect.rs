@@ -5,6 +5,7 @@ use std::{
     io::Read,
     thread,
 };
+use std::cmp::Ordering;
 use std::convert::TryInto;
 
 use crossbeam_channel::{bounded, Receiver, Sender, SendError};
@@ -26,6 +27,18 @@ pub struct SavedHash {
 impl Hash for SavedHash {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.password_hash.as_ref().hash(state);
+    }
+}
+
+impl PartialOrd for SavedHash {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.password_hash.partial_cmp(&other.password_hash)
+    }
+}
+
+impl Ord for SavedHash {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.password_hash.cmp(&other.password_hash)
     }
 }
 
