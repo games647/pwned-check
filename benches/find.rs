@@ -91,15 +91,19 @@ fn array_simd_ordered_find(data: &[Record], hays: &[Record]) -> usize {
 /// of that comparison it doesn't have any effect on the equality
 #[allow(clippy::derive_hash_xor_eq)]
 #[derive(Eq, Hash)]
-struct SimdHolder {
-    data: Record,
-}
+struct SimdHolder(Record);
 
 impl PartialEq for SimdHolder {
     fn eq(&self, other: &Self) -> bool {
-        let packed_self = u8x32::from_slice_unaligned(&self.data);
-        let packed_other = u8x32::from_slice_unaligned(&other.data);
+        let packed_self = u8x32::from_slice_unaligned(&self.0);
+        let packed_other = u8x32::from_slice_unaligned(&other.0);
         packed_self.eq(packed_other).all()
+    }
+}
+
+impl From<&Record> for SimdHolder {
+    fn from(input: &Record) -> Self {
+        SimdHolder(*input)
     }
 }
 
@@ -114,8 +118,8 @@ fn find_benchmark(c: &mut Criterion) {
     let mut sorted = hays_max.clone();
     sorted.sort_unstable();
 
-    let custom_data: Vec<SimdHolder> = data.iter().map(|&x| SimdHolder { data: x }).collect();
-    let custom_hay: Vec<SimdHolder> = hays_max.iter().map(|&x| SimdHolder { data: x }).collect();
+    let custom_data: Vec<SimdHolder> = data.iter().map(Into::into).collect();
+    let custom_hay: Vec<SimdHolder> = hays_max.iter().map(Into::into).collect();
 
     for &hay_size in &[32, 64, 128, 256] {
         let hays = &hays_max[..hay_size];

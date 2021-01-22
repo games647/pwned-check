@@ -29,34 +29,30 @@ mod owned {
 
     use crate::expensive_fn;
 
-    struct OwnedData {
-        content: String,
-    }
+    struct OwnedData(String);
 
     pub fn fut(input: &[&str]) -> Vec<Digest> {
         input
             .iter()
             .map(|&x| {
-                // explicit clone
-                let data = OwnedData {
-                    content: x.to_string(),
-                };
-                expensive_fn(data.content.as_bytes())
+                // explicit clone due to the to_string call
+                let data = OwnedData(x.to_string());
+                expensive_fn(data.0.as_bytes())
             })
             .collect()
     }
 
     pub fn fut_threaded(input: &[&str]) -> Vec<Digest> {
-        let mut mapped = Vec::with_capacity(input.len());
-        for &line in input {
-            mapped.push(OwnedData {
-                content: line.to_string(),
-            })
-        }
+        // explicitly collect into it's own vec to simulate single threaded reading
+        let mapped: Vec<OwnedData> = input
+            .iter()
+            .map(ToString::to_string)
+            .map(OwnedData)
+            .collect();
 
         mapped
             .par_iter()
-            .map(|x| expensive_fn(x.content.as_bytes()))
+            .map(|x| expensive_fn(x.0.as_bytes()))
             .collect()
     }
 }
@@ -65,7 +61,7 @@ fn create_scrambled_data(size: usize) -> Vec<String> {
     (0..size)
         .map(|_| {
             iter::repeat(())
-                .map(|_| rand::thread_rng().sample(Alphanumeric))
+                .map(|_| rand::thread_rng().sample(&Alphanumeric))
                 .map(char::from)
                 .take(common::RECORD_BYTE_SIZE)
                 .collect()
