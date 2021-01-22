@@ -12,6 +12,10 @@ edition = "2018"
 readme = "README.md"
 
 [dependencies]
+# Custom hasher implementation - This has the possible to hash multiple bytes at the same time, but doesn't provide
+# DoS protection
+fxhash = "0.2"
+
 # Clear memory of clear text credentials
 secstr = { version = "0.4", features = ["serde"] }
 
@@ -70,10 +74,6 @@ packed_simd_2 = "0.3"
 
 # Alternative to hashset/map for more memory local indicies
 indexmap = "1.6"
-
-# Custom hasher implementation - This has the possible to hash multiple bytes at the same time, but doesn't provide
-# DoS protection
-fxhash = "0.2"
 
 # Benchmark names
 

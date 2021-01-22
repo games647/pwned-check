@@ -74,10 +74,8 @@ impl TryFrom<&[u8]> for PwnedHash {
 pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
     // make a copy of this hash rather than below (at the get call), because it's more likely that
     // there are fewer saved passwords than in the database
-    let map: HashMap<&Sha1Hash, &SavedHash> = hashes
-        .iter()
-        .map(|x| (&x.password_hash, x))
-        .collect();
+    let map: HashMap<&Sha1Hash, &SavedHash, FxBuildHasher> =
+        hashes.iter().map(|x| (&x.password_hash, x)).collect();
 
     // re-use hash buffer to reduce the number of allocations
     let mut record: PwnedHash = PwnedHash::default();
