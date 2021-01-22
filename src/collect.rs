@@ -66,7 +66,6 @@ pub fn collect_hashes(password_reader: csv::Reader<impl Read>) -> Result<Vec<Sav
             for in_record in local_rx {
                 let digest = hash_pass(in_record.password.unsecure());
                 let hash = digest.as_ref();
-                assert_eq!(hash.len(), SHA1_BYTE_LENGTH);
 
                 let record = SavedHash {
                     // url, username gets moved in here
