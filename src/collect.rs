@@ -1,19 +1,18 @@
 use std::{
-    fmt::Display,
-    fmt::Formatter,
+    cmp::Ordering,
+    convert::TryInto,
+    fmt::{Display, Formatter},
     hash::{Hash, Hasher},
     io::Read,
     thread,
 };
-use std::cmp::Ordering;
-use std::convert::TryInto;
 
 use crossbeam_channel::{bounded, Receiver, Sender, SendError};
 use ring::digest::{digest, Digest, SHA1_FOR_LEGACY_USE_ONLY};
 use secstr::SecStr;
 use serde::Deserialize;
 
-use crate::{SHA1_BYTE_LENGTH, Sha1Hash};
+use crate::Sha1Hash;
 
 const PASSWORD_BUFFER: usize = 128;
 
@@ -130,18 +129,12 @@ mod test {
 
     #[test]
     fn test_hash() {
-        assert_eq!(
-            HEXLOWER.encode(hash_pass(b"hello").as_ref()),
-            HASH_EXPECTED
-        )
+        assert_eq!(HEXLOWER.encode(hash_pass(b"hello").as_ref()), HASH_EXPECTED)
     }
 
     #[test]
     fn test_hash_failed() {
-        assert_ne!(
-            HEXLOWER.encode(hash_pass(b"fail").as_ref()),
-            HASH_EXPECTED
-        )
+        assert_ne!(HEXLOWER.encode(hash_pass(b"fail").as_ref()), HASH_EXPECTED)
     }
 
     #[test]

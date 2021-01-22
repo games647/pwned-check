@@ -33,7 +33,7 @@ fn simd_benchmark(c: &mut Criterion) {
     let sizes = common::SIZE_ARRAY;
     let data = common::create_scrambled_data(*sizes.last().unwrap());
     for &size in &sizes {
-        let size_data = &data[0..size];
+        let size_data = &data[..size];
 
         // random hay, because otherwise Rust could perhaps optimize it to memory address compare
         let hay = rand::thread_rng().gen();

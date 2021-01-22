@@ -1,9 +1,7 @@
-/// This benchmark doesn't evaluate the quality of the hashing implementations. However for our
-/// input it seems enough.
-///
-/// https://github.com/tkaitchuck/aHash/blob/master/compare/readme.md#Speed
-use std::collections::{BTreeSet, HashSet};
-use std::hash::Hash;
+use std::{
+    collections::{BTreeSet, HashSet},
+    hash::Hash,
+};
 
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use fxhash::FxBuildHasher;

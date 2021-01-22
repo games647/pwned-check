@@ -1,17 +1,15 @@
-use std::{
-    collections::HashMap,
-    convert::TryFrom,
-    fs::File,
-    io::BufReader,
-};
-use std::num::ParseIntError;
+use std::{collections::HashMap, convert::TryFrom, fs::File, io::BufReader, num::ParseIntError};
 
 use bstr::io::BufReadExt;
 use data_encoding::HEXUPPER;
+use fxhash::FxBuildHasher;
 
-use crate::{SHA1_BYTE_LENGTH, Sha1Hash};
-use crate::collect::SavedHash;
-use crate::find::ParseHashError::*;
+use crate::{
+    collect::SavedHash,
+    find::ParseHashError::*,
+    SHA1_BYTE_LENGTH,
+    Sha1Hash,
+};
 
 #[derive(Debug, Default)]
 struct PwnedHash {
@@ -227,7 +225,10 @@ mod test {
 
     #[test]
     fn test_overriding() {
-        let mut record: PwnedHash = PwnedHash { hash: [0; SHA1_BYTE_LENGTH], count: Some(Ok(2)) };
+        let mut record: PwnedHash = PwnedHash {
+            hash: [0; SHA1_BYTE_LENGTH],
+            count: Some(Ok(2)),
+        };
 
         let bytes_line = TEST_LINE.as_bytes();
         record.parse_new_hash(bytes_line).unwrap();

@@ -95,7 +95,7 @@ fn hashing_benchmark(c: &mut Criterion) {
     let sizes = common::SIZE_ARRAY;
     let data = create_scrambled_data(*sizes.last().unwrap());
     for &size in &sizes {
-        let size_data = &data[0..size];
+        let size_data = &data[..size];
 
         /// Generates benchmark test units
         ///
