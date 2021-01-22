@@ -1,11 +1,15 @@
 [package]
 name = "pwned-check"
-description = "Check an exported list of passwords against the offline password hash database of haveibeenpwned"
 version = "0.1.0"
-license = "Unlicense"
-keywords = ["pwned", "password"]
+description = "Check an exported list of passwords against the offline password hash database of haveibeenpwned"
 authors = ["games647 <games647@users.noreply.github.com>"]
+
+license = "Unlicense"
+repository = "https://github.com/games647/pwned_check/"
+keywords = ["pwned", "password"]
+
 edition = "2018"
+readme = "README.md"
 
 [dependencies]
 # Clear memory of clear text credentials
