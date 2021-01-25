@@ -92,6 +92,14 @@ pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
 
     let total_length = hash_file.metadata().unwrap().len();
 
+    // Windows has something similar with:
+    // https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea#caching-behavior
+    #[cfg(unix)]
+    use std::os::unix::io::AsRawFd;
+    let fd = hash_file.as_raw_fd();
+    let ret = unsafe { libc::posix_fadvise(fd, 0, 0, libc::POSIX_FADV_SEQUENTIAL) };
+    assert!(ret == 0, "Fadvise error {}", ret);
+
     let mut bar = ProgressBar::new(total_length as u64);
     bar.set_units(Units::Bytes);
 
