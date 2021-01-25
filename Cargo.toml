@@ -12,6 +12,9 @@ edition = "2018"
 readme = "README.md"
 
 [dependencies]
+# Progressbar
+pbr = "1.0"
+
 # Custom hasher implementation - This has the possible to hash multiple bytes at the same time, but doesn't provide
 # DoS protection
 fxhash = "0.2"

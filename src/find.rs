@@ -1,8 +1,19 @@
-use std::{collections::HashMap, convert::TryFrom, fs::File, io::BufReader, num::ParseIntError};
+use std::{
+    collections::HashMap,
+    convert::TryFrom,
+    fs::File,
+    io::BufReader,
+    num::ParseIntError,
+    time::Duration,
+};
 
 use bstr::io::BufReadExt;
 use data_encoding::HEXUPPER;
 use fxhash::FxBuildHasher;
+use pbr::{
+    ProgressBar,
+    Units,
+};
 
 use crate::{
     collect::SavedHash,
@@ -14,6 +25,7 @@ use crate::{
 #[derive(Debug, Default)]
 struct PwnedHash {
     hash: Sha1Hash,
+    // lazy load, because we only need it on an equal hit
     count: Option<Result<u32, ParseHashError>>,
 }
 
@@ -38,14 +50,15 @@ impl PwnedHash {
         let len = HEXUPPER
             .decode_mut(hash_part, &mut self.hash)
             .map_err(|_| InvalidFormat())?;
+        // verify that the length is not less
         assert_eq!(len, SHA1_BYTE_LENGTH);
+
+        // reset count number if did before
         self.count = None;
         Ok(())
     }
 
     fn parse_count(&mut self, line: &[u8]) -> &Result<u32, ParseHashError> {
-        assert!(line.len() > 41);
-
         // this has the performance penalty of converting to UTF-8 instead of using ASCII bytes
         // directly. However we likely don't call this method often, so it's negligible
         // otherwise we could use the atoi crate
@@ -77,6 +90,14 @@ pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
     let map: HashMap<&Sha1Hash, &SavedHash, FxBuildHasher> =
         hashes.iter().map(|x| (&x.password_hash, x)).collect();
 
+    let total_length = hash_file.metadata().unwrap().len();
+
+    let mut bar = ProgressBar::new(total_length as u64);
+    bar.set_units(Units::Bytes);
+
+    // limit, because we call add very frequently
+    bar.set_max_refresh_rate(Some(Duration::from_secs(1)));
+
     // re-use hash buffer to reduce the number of allocations
     let mut record: PwnedHash = PwnedHash::default();
 
@@ -84,6 +105,8 @@ pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
         // reads line-by-line including re-use the allocation
         // so we don't need to convert it to UTF-8 or make an extra allocation
         .for_byte_line(|line| {
+            bar.add(line.len() as u64);
+
             record.parse_new_hash(line).unwrap();
             if let Some(saved) = map.get(&record.hash) {
                 let count = record.parse_count(line).as_ref().unwrap();
@@ -96,6 +119,8 @@ pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
             Ok(true)
         })
         .unwrap();
+
+    bar.finish();
 }
 
 #[cfg(test)]
