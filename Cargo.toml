@@ -12,6 +12,9 @@ edition = "2018"
 readme = "README.md"
 
 [dependencies]
+# Safe wrapper for memory mapping
+memmap = "0.7"
+
 # Progressbar
 pbr = "1.0"
 

@@ -118,6 +118,15 @@ https://llogiq.github.io/2017/06/01/perf-pitfalls.html
 
 ---
 
+https://www.scylladb.com/2017/10/05/io-access-methods-scylla/
+
+* Memory mapping is expensive to open, but for big files worth it
+* No copies from kernel space to user space
+* Hides I/O behind page faults
+* Other process could write to the file or page -> causing unsafe behavior
+
+---
+
 * SIMD can easily improve performance if you're dealing with
     * However, they have to fit in the supported registers exactly (i.e. u8 * 32), otherwise they need to be resized
     * Nevertheless, the performance could vary a lot depending on the compiler settings * In this

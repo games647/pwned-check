@@ -1,26 +1,15 @@
 use std::{
-    collections::HashMap,
-    convert::TryFrom,
-    fs::File,
-    io::BufReader,
-    num::ParseIntError,
+    collections::HashMap, convert::TryFrom, fs::File, io, io::BufReader, num::ParseIntError,
     time::Duration,
 };
 
 use bstr::io::BufReadExt;
 use data_encoding::HEXUPPER;
 use fxhash::FxBuildHasher;
-use pbr::{
-    ProgressBar,
-    Units,
-};
+use memmap::MmapOptions;
+use pbr::{ProgressBar, Units};
 
-use crate::{
-    collect::SavedHash,
-    find::ParseHashError::*,
-    SHA1_BYTE_LENGTH,
-    Sha1Hash,
-};
+use crate::{collect::SavedHash, find::ParseHashError::*, SHA1_BYTE_LENGTH, Sha1Hash};
 
 #[derive(Debug, Default)]
 struct PwnedHash {
@@ -85,22 +74,73 @@ impl TryFrom<&[u8]> for PwnedHash {
 }
 
 pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
+    // # Safety
+    // It's unspecified if another process can modify the file or map and we see the changes.
+    // This could cause unexpected changes for us and end up in a segmentation fault. Furthermore
+    // mapping it to memory hides I/O errors from us.
+    let mmap = unsafe { MmapOptions::new().map(&hash_file) };
+    match mmap {
+        Ok(map) => {
+            println!("Using memory maps - writes to the file or map could cause program crashes");
+
+            let mut perms = hash_file.metadata().unwrap().permissions();
+            let was_read_only = perms.readonly();
+            perms.set_readonly(true);
+            hash_file.set_permissions(perms).unwrap();
+
+            #[cfg(unix)]
+                {
+                    // Warning: Safety
+                    let ptr = map.as_ptr() as *mut libc::c_void;
+                    let len = map.len();
+                    unsafe {
+                        let ret = libc::madvise(ptr, len, libc::MADV_SEQUENTIAL);
+                        if ret == 0 {
+                            Ok(())
+                        } else {
+                            Err(io::Error::last_os_error())
+                        }
+                    }
+                        .unwrap();
+                }
+
+            // blocking - help the compiler with the type
+            let data: &[u8] = &map;
+            find_hash_incrementally(data, map.len() as u64, hashes);
+
+            if was_read_only {
+                let mut perms = hash_file.metadata().unwrap().permissions();
+                perms.set_readonly(false);
+                hash_file.set_permissions(perms).unwrap();
+            }
+        }
+        Err(err) => {
+            eprintln!("Failed to use memory maps using incremental search {}", err);
+
+            // Windows has something similar with:
+            // https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea#caching-behavior
+            #[cfg(unix)]
+                {
+                    use std::os::unix::io::AsRawFd;
+                    let fd = hash_file.as_raw_fd();
+                    let ret = unsafe { libc::posix_fadvise(fd, 0, 0, libc::POSIX_FADV_SEQUENTIAL) };
+                    assert!(ret == 0, "Fadvise error {}", ret);
+                }
+
+            let reader = BufReader::new(hash_file);
+            let max_length = hash_file.metadata().unwrap().len();
+            find_hash_incrementally(reader, max_length, hashes);
+        }
+    }
+}
+
+fn find_hash_incrementally(hash_reader: impl BufReadExt, max_length: u64, hashes: &[SavedHash]) {
     // make a copy of this hash rather than below (at the get call), because it's more likely that
     // there are fewer saved passwords than in the database
     let map: HashMap<&Sha1Hash, &SavedHash, FxBuildHasher> =
         hashes.iter().map(|x| (&x.password_hash, x)).collect();
 
-    let total_length = hash_file.metadata().unwrap().len();
-
-    // Windows has something similar with:
-    // https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea#caching-behavior
-    #[cfg(unix)]
-    use std::os::unix::io::AsRawFd;
-    let fd = hash_file.as_raw_fd();
-    let ret = unsafe { libc::posix_fadvise(fd, 0, 0, libc::POSIX_FADV_SEQUENTIAL) };
-    assert!(ret == 0, "Fadvise error {}", ret);
-
-    let mut bar = ProgressBar::new(total_length as u64);
+    let mut bar = ProgressBar::new(max_length);
     bar.set_units(Units::Bytes);
 
     // limit, because we call add very frequently
@@ -109,7 +149,7 @@ pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
     // re-use hash buffer to reduce the number of allocations
     let mut record: PwnedHash = PwnedHash::default();
 
-    BufReader::new(hash_file)
+    hash_reader
         // reads line-by-line including re-use the allocation
         // so we don't need to convert it to UTF-8 or make an extra allocation
         .for_byte_line(|line| {
