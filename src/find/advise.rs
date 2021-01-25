@@ -1,9 +1,8 @@
 use std::fs::File;
 use std::io;
 
-use crate::find::advise::FAdviseError::{EBADF, EINVAL, ESPIPE, Unknown};
-
 /// Memory mapped advise type
+#[cfg(unix)]
 #[repr(i32)]
 #[allow(dead_code)]
 pub enum MemoryAdvice {
@@ -20,14 +19,21 @@ pub enum MemoryAdvice {
 
 /// Advise the OS about the usage of this memory page
 ///
+/// # Panics
+///
+/// If the given pointer is null
+///
 /// # Examples
 ///
 /// ```
 /// madvise(file, 0, 0, MEMORY_ADVICE::Sequential);
 /// ```
+#[cfg(unix)]
 pub fn madvise(ptr: *mut (), len: usize, advice: MemoryAdvice) -> Result<(), io::Error> {
     assert!(!ptr.is_null());
 
+    // madvise consumes a pointer - normally they shouldn't change anything of the data behind the
+    // pointer - however we don't know that for sure
     let ret = unsafe { libc::madvise(ptr as *mut libc::c_void, len, advice as i32) };
     if ret == 0 {
         Ok(())
@@ -36,8 +42,8 @@ pub fn madvise(ptr: *mut (), len: usize, advice: MemoryAdvice) -> Result<(), io:
     }
 }
 
-
 /// File advise type
+#[cfg(unix)]
 #[repr(i32)]
 #[allow(dead_code)]
 pub enum FileAdvice {
@@ -53,6 +59,9 @@ pub enum FileAdvice {
 // https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea#caching-behavior
 
 /// Advise the OS about the intended file access
+///
+/// The optional length represents the total length, if empty 0 will be specified. This means to
+/// the end of the file.
 ///
 /// # Panics
 ///
@@ -71,13 +80,14 @@ pub fn fadvise(file: &File, offset: i64, length: Option<i64>, advice: FileAdvice
     let res = unsafe { libc::posix_fadvise(fd, offset, length.unwrap_or(0), advice as i32) };
     match res {
         0 => Ok(()),
-        libc::EBADF => Err(EBADF),
-        libc::EINVAL => Err(EINVAL),
-        libc::ESPIPE => Err(ESPIPE),
-        err => Err(Unknown(err))
+        libc::EBADF => Err(FAdviseError::EBADF),
+        libc::EINVAL => Err(FAdviseError::EINVAL),
+        libc::ESPIPE => Err(FAdviseError::ESPIPE),
+        err => Err(FAdviseError::Unknown(err))
     }.unwrap()
 }
 
+#[cfg(unix)]
 #[derive(Debug)]
 enum FAdviseError {
     EBADF,

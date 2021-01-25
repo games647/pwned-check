@@ -18,6 +18,8 @@ Feedback appreciated.
 * Offline
 * Multi-Threaded
 * Clear read passwords from memory
+* Memory mapping
+* `fadvise` and `madvise` for unix based systems
 
 ## ToDo
 
