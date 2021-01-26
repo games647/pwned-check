@@ -19,6 +19,7 @@ Feedback appreciated.
 * Multi-Threaded
 * Clear read passwords from memory
 * Memory mapping
+* SIMD comparisons
 * `fadvise` and `madvise` for unix based systems
 
 ## ToDo

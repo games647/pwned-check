@@ -12,6 +12,9 @@ edition = "2018"
 readme = "README.md"
 
 [dependencies]
+# Support for SIMD instructions
+packed_simd_2 = "0.3"
+
 # Platform features
 libc = "0.2"
 
@@ -77,9 +80,6 @@ rand = "0.8"
 
 # Parallel iterator
 rayon = "1.5"
-
-# Support for SIMD instructions
-packed_simd_2 = "0.3"
 
 # Alternative to hashset/map for more memory local indicies
 indexmap = "1.6"

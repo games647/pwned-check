@@ -1,4 +1,5 @@
 use std::{
+    cmp::Ordering,
     collections::{BTreeSet, HashSet},
     hash::Hash,
 };
@@ -12,6 +13,11 @@ use rayon::prelude::*;
 use common::Record;
 
 mod common;
+
+/// This benchmark doesn't evaluate the quality of the hashing implementations. However for our
+/// input it seems enough.
+///
+/// https://github.com/tkaitchuck/aHash/blob/master/compare/readme.md#Speed
 
 fn default_set_find(data: &[Record], hays: &HashSet<&Record>) -> usize {
     data.iter().filter(|&x| hays.contains(x)).count()
@@ -58,31 +64,44 @@ fn simd_contains(hays: &[Record], x: &Record) -> bool {
 }
 
 fn array_simd_ordered_find(data: &[Record], hays: &[Record]) -> usize {
-    let max = hays.len();
-    let mut count = 0;
+    let mut found = 0;
 
-    let mut current = hays[count];
+    let mut hays = hays.iter();
+    let mut next = hays.next();
     for x in data {
-        let packed_x = u8x32::from_slice_unaligned(&x[0..]);
-        let packed_hay = u8x32::from_slice_unaligned(&current);
+        let packed_x = u8x32::from_slice_unaligned(&x[..]);
 
-        let m = packed_x.lt(packed_hay);
-        if m.any() {
-            continue;
-        }
+        loop {
+            let current = match next {
+                Some(inner) => inner,
+                None => {
+                    return found
+                }
+            };
 
-        let m = packed_x.eq(packed_hay);
-        if m.all() {
-            count += 1;
-            if count == max {
-                break;
+            let mut packed_hay = u8x32::from_slice_unaligned(&current[..]);
+            match packed_x.lex_ord().cmp(&packed_hay.lex_ord()) {
+                Ordering::Equal => {
+                    // found an exact match - advance hay
+                    found += 1;
+                    next = hays.next();
+                    break;
+                },
+                Ordering::Less => {
+                    // x < than our current hay candidate
+                    // advance x
+                    break;
+                }
+                Ordering::Greater => {
+                    // x > than our current hay candidate
+                    // advance hay until it's higher again
+                    next = hays.next();
+                }
             }
-
-            current = hays[count];
         }
     }
 
-    count
+    found
 }
 
 /// Struct which uses 512 bit SIMD for identity comparisons
@@ -113,23 +132,24 @@ fn find_benchmark(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("find");
 
-    let data = common::create_scrambled_data(DATA_SIZE);
-    let hays_max = common::create_scrambled_data(HAY_SIZE);
-    let mut sorted = hays_max.clone();
-    sorted.sort_unstable();
+    let mut data_sorted = common::create_scrambled_data(DATA_SIZE);
+    let mut max_hays = common::create_scrambled_data(HAY_SIZE);
 
-    let custom_data: Vec<SimdHolder> = data.iter().map(Into::into).collect();
-    let custom_hay: Vec<SimdHolder> = hays_max.iter().map(Into::into).collect();
+    data_sorted.sort_unstable();
+
+    max_hays.sort_unstable();
+
+    let custom_data: Vec<SimdHolder> = data_sorted.iter().map(Into::into).collect();
+    let custom_hay: Vec<SimdHolder> = max_hays.iter().map(Into::into).collect();
 
     for &hay_size in &[32, 64, 128, 256] {
-        let hays = &hays_max[..hay_size];
-        let sorted = &sorted[..hay_size];
+        let sorted_hay = &sorted[..hay_size];
         let custom_h = &custom_hay[..hay_size];
 
         macro_rules! gen_bench {
             ($name:literal, $fut:ident) => {
                 let id = BenchmarkId::new($name, hay_size);
-                group.bench_with_input(id, &(&data, &hays), |b, (data, hays)| {
+                group.bench_with_input(id, &(&data_sorted, &sorted_hay), |b, (data, hays)| {
                     b.iter(|| $fut(data, &hays));
                 });
             };
@@ -137,7 +157,7 @@ fn find_benchmark(c: &mut Criterion) {
 
         macro_rules! gen_bench_set {
             ($name:literal, $fut:ident) => {
-                gen_bench_set!($name, $fut, data, hays);
+                gen_bench_set!($name, $fut, data_sorted, sorted_hay);
             };
             ($name:literal, $fut:ident, $data:ident, $hays:ident) => {
                 let id = BenchmarkId::new($name, hay_size);
@@ -166,7 +186,7 @@ fn find_benchmark(c: &mut Criterion) {
         gen_bench_set!("Indexmap (FX)", index_map_find_fx);
 
         let id = BenchmarkId::new("Array (SIMD-Ord)", hay_size);
-        group.bench_with_input(id, &(&data, &sorted), |b, (data, hays)| {
+        group.bench_with_input(id, &(&data_sorted, &sorted_hay), |b, (data, hays)| {
             b.iter(|| array_simd_ordered_find(data, &hays));
         });
     }
