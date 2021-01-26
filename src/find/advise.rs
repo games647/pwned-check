@@ -83,8 +83,9 @@ pub fn fadvise(file: &File, offset: i64, length: Option<i64>, advice: FileAdvice
         libc::EBADF => Err(FAdviseError::EBADF),
         libc::EINVAL => Err(FAdviseError::EINVAL),
         libc::ESPIPE => Err(FAdviseError::ESPIPE),
-        err => Err(FAdviseError::Unknown(err))
-    }.unwrap()
+        err => Err(FAdviseError::Unknown(err)),
+    }
+    .unwrap()
 }
 
 #[cfg(unix)]

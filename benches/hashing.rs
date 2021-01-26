@@ -12,7 +12,10 @@ mod common;
 
 /// sequential hashing of bytes to the hex string representation
 fn hash_sequential(data: &[Record]) -> Vec<String> {
-    data.iter().map(|x| hash_func(x)).map(|x| hex_encode(&x)).collect()
+    data.iter()
+        .map(|x| hash_func(x))
+        .map(|x| hex_encode(&x))
+        .collect()
 }
 
 /// hash sequential, but keep the byte representation
@@ -22,7 +25,10 @@ fn hash_bytes_sequential(data: &[Record]) -> Vec<Digest> {
 
 /// parallel hashing with hex representation
 fn hash_threaded(data: &[Record]) -> Vec<String> {
-    data.par_iter().map(|x| hash_func(x)).map(|x| hex_encode(&x)).collect()
+    data.par_iter()
+        .map(|x| hash_func(x))
+        .map(|x| hex_encode(&x))
+        .collect()
 }
 
 /// parallel hashing but keeping the byte representation
@@ -62,7 +68,7 @@ fn hash_bytes_channel(data: &[Record]) -> Vec<Digest> {
 
         hash_rec.iter().collect()
     })
-        .unwrap()
+    .unwrap()
 }
 
 /// hash and format to the hex representation

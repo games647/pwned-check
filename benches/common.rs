@@ -7,12 +7,14 @@ pub type Record = [u8; RECORD_BYTE_SIZE];
 
 #[allow(dead_code)]
 pub fn create_scrambled_data(size: usize) -> Vec<Record> {
-    (0..size).map(|_| {
-        // According to the wiki filling bytes is faster than the gen method
-        let mut buf = [0; RECORD_BYTE_SIZE];
-        rand::thread_rng().fill_bytes(&mut buf);
-        buf
-    }).collect()
+    (0..size)
+        .map(|_| {
+            // According to the wiki filling bytes is faster than the gen method
+            let mut buf = [0; RECORD_BYTE_SIZE];
+            rand::thread_rng().fill_bytes(&mut buf);
+            buf
+        })
+        .collect()
 }
 
 #[allow(dead_code)]

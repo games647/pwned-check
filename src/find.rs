@@ -1,21 +1,14 @@
-use std::{
-    collections::HashMap, fs::File, io::BufReader,
-    time::Duration,
-};
+use std::{collections::HashMap, fs::File, io::BufReader, time::Duration};
 
 use bstr::io::BufReadExt;
 use fxhash::FxBuildHasher;
 use memmap::{Mmap, MmapOptions};
 use pbr::{ProgressBar, Units};
 
-use crate::{
-    collect::SavedHash,
-    find::parse::PwnedHash,
-    Sha1Hash,
-};
+use crate::{collect::SavedHash, find::parse::PwnedHash, Sha1Hash};
 
-mod parse;
 mod advise;
+mod parse;
 
 pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) {
     let mmap = unsafe { MmapOptions::new().map(&hash_file) };
@@ -45,10 +38,10 @@ fn find_hash_mapped(map: &Mmap, hash_file: &File, hashes: &[SavedHash]) {
     hash_file.set_permissions(perms).unwrap();
 
     #[cfg(unix)]
-        {
-            let ptr = map.as_ptr() as *mut ();
-            advise::madvise(ptr, map.len(), advise::MemoryAdvice::Sequential).unwrap();
-        }
+    {
+        let ptr = map.as_ptr() as *mut ();
+        advise::madvise(ptr, map.len(), advise::MemoryAdvice::Sequential).unwrap();
+    }
 
     // blocking - help the compiler with the type
     let data: &[u8] = &map;
@@ -63,7 +56,7 @@ fn find_hash_mapped(map: &Mmap, hash_file: &File, hashes: &[SavedHash]) {
 
 fn find_hash_file_read(hash_file: &File, hashes: &[SavedHash]) {
     #[cfg(unix)]
-        advise::fadvise(hash_file, 0, None, advise::FileAdvice::Sequential);
+    advise::fadvise(hash_file, 0, None, advise::FileAdvice::Sequential);
 
     let reader = BufReader::new(hash_file);
     let max_length = hash_file.metadata().unwrap().len();

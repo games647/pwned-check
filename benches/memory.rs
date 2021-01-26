@@ -1,10 +1,7 @@
 use std::iter;
 
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
-use rand::{
-    distributions::Alphanumeric,
-    prelude::*,
-};
+use rand::{distributions::Alphanumeric, prelude::*};
 use ring::digest::{digest, Digest, SHA1_FOR_LEGACY_USE_ONLY};
 
 mod common;

@@ -1,6 +1,6 @@
 use std::{fs::File, io::Read};
 
-use clap::{App, Arg, crate_description, crate_name, crate_version};
+use clap::{crate_description, crate_name, crate_version, App, Arg};
 use ring::digest::SHA1_OUTPUT_LEN;
 
 const PASSWORD_KEY: &str = "passwords_file";
