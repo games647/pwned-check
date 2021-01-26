@@ -101,3 +101,56 @@ enum FAdviseError {
     /// Unexpected integer return value
     Unknown(i32),
 }
+
+#[cfg(test)]
+mod test {
+    use std::{panic, ptr};
+    use std::os::unix::io::FromRawFd;
+
+    use assert_matches::assert_matches;
+    use memmap::MmapOptions;
+
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    fn madvise_null() {
+        let ptr: *mut u8 = ptr::null_mut();
+        let _ = madvise(ptr, 1, MemoryAdvice::Sequential);
+    }
+
+    #[test]
+    fn madvise_success() {
+        let mmap = MmapOptions::new().len(8).map_anon().unwrap();
+        let ptr = mmap.as_ptr() as *mut u8;
+        let _result = madvise(ptr, 8, MemoryAdvice::DontNeed);
+
+        let expected: Result<(), io::Error> = Ok(());
+        assert_matches!(expected, _result);
+    }
+
+    #[test]
+    fn fadvise_success() {
+        let file = file!();
+        let file = File::open(file).unwrap();
+        fadvise(&file, 0, None, FileAdvice::WillNeed);
+    }
+
+    #[test]
+    fn fadvise_pipe_error() {
+        let mut fds: [libc::c_int; 2] = [0; 2];
+        let ret = unsafe { libc::pipe(fds.as_mut_ptr()) };
+
+        if ret != 0 {
+            let expected: Result<(), io::Error> = Ok(());
+            let _err: Result<(), io::Error> = Err(io::Error::last_os_error());
+            assert_matches!(expected, _err);
+        }
+
+        let file = unsafe { File::from_raw_fd(fds[0]) };
+
+        // test for panic only inside that closure to not interfere with the unsafe call above
+        let result = panic::catch_unwind(|| fadvise(&file, 0, None, FileAdvice::WillNeed));
+        assert!(result.is_err());
+    }
+}
