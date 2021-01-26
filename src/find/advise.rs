@@ -27,7 +27,10 @@ pub enum MemoryAdvice {
 /// # Examples
 ///
 /// ```
-/// madvise(file, 0, 0, MEMORY_ADVICE::Sequential);
+/// let mmap = MmapOptions::new().len(8).map_anon().unwrap();
+/// // Safety: cast to mutable pointer from immutable source
+///  let ptr = mmap.as_ptr() as *mut u8;
+/// madvise(ptr, 0, 8, MemoryAdvice::Sequential);
 /// ```
 #[cfg(unix)]
 pub fn madvise<T>(ptr: *mut T, len: usize, advice: MemoryAdvice) -> Result<(), io::Error> {
@@ -71,6 +74,7 @@ pub enum FileAdvice {
 /// # Examples
 ///
 /// ```
+/// let file = File::open(file!());
 /// fadvise(file, 0, None, Advice::Sequential);
 /// ```
 #[cfg(unix)]

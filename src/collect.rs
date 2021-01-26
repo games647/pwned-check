@@ -1,6 +1,7 @@
 use std::{
     cmp::Ordering,
     convert::TryInto,
+    fmt,
     fmt::{Display, Formatter},
     hash::{Hash, Hasher},
     io::Read,
@@ -48,7 +49,7 @@ impl PartialEq for SavedHash {
 }
 
 impl Display for SavedHash {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}@{}", self.username, self.url)
     }
 }
