@@ -39,7 +39,7 @@ fn find_hash_mapped(map: &Mmap, hash_file: &File, hashes: &[SavedHash]) {
 
     #[cfg(unix)]
     {
-        let ptr = map.as_ptr() as *mut ();
+        let ptr = map.as_ptr() as *mut u8;
         advise::madvise(ptr, map.len(), advise::MemoryAdvice::Sequential).unwrap();
     }
 

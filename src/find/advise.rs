@@ -17,7 +17,8 @@ pub enum MemoryAdvice {
 // Windows:
 // https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-prefetchvirtualmemory
 
-/// Advise the OS about the usage of this memory page
+/// Advise the OS about the usage of this memory page. Linux specific implementation allows
+/// zero length and page aligned access according to the man page.
 ///
 /// # Panics
 ///
@@ -29,7 +30,7 @@ pub enum MemoryAdvice {
 /// madvise(file, 0, 0, MEMORY_ADVICE::Sequential);
 /// ```
 #[cfg(unix)]
-pub fn madvise(ptr: *mut (), len: usize, advice: MemoryAdvice) -> Result<(), io::Error> {
+pub fn madvise<T>(ptr: *mut T, len: usize, advice: MemoryAdvice) -> Result<(), io::Error> {
     assert!(!ptr.is_null());
 
     // madvise consumes a pointer - normally they shouldn't change anything of the data behind the
@@ -91,8 +92,12 @@ pub fn fadvise(file: &File, offset: i64, length: Option<i64>, advice: FileAdvice
 #[cfg(unix)]
 #[derive(Debug)]
 enum FAdviseError {
+    /// No valid file descriptor
     EBADF,
+    /// Invalid advise value
     EINVAL,
+    /// File descriptor refers to a pipe
     ESPIPE,
+    /// Unexpected integer return value
     Unknown(i32),
 }
