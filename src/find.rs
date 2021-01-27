@@ -76,9 +76,7 @@ fn find_hash_mapped(map: &Mmap, hash_file: &File, hashes: &[SavedHash]) -> Resul
     find_hash_incrementally(data, len, hashes)?;
 
     if did_change {
-        let result = set_readonly(hash_file, false);
-
-        if let Err(err) = result {
+        if let Err(err) = set_readonly(hash_file, false) {
             error!(
                 "Failed to restore old readable state - please check the file yourself {}",
                 err
@@ -159,13 +157,22 @@ fn find_hash_incrementally(
                 return Ok(false);
             }
 
-            let candidate = u8x32::from_slice_unaligned(&record.hash_padded);
+            let pwned = u8x32::from_slice_unaligned(&record.hash_padded);
 
-            // match candidate.
+            // This could also be improved further by re-using the internal eq/lt operations from
+            // simd, but it's good enough
             loop {
-                match candidate.lex_ord().cmp(&current_saved.0.lex_ord()) {
+                // loop through the list of hashes (stored passwords) until you find one that
+                // one that is larger (pwned < current)
+                match pwned.lex_ord().cmp(&current_saved.0.lex_ord()) {
+                    Ordering::Less => {
+                        // pwned < current
+                        // This means we need advance further in the hash database - reading the
+                        // next line
+                        break;
+                    },
                     Ordering::Equal => {
-                        // found an exact match - advance hay
+                        // found an exact match
                         match record.parse_count(line).as_ref() {
                             Ok(count) => {
                                 info!(
@@ -180,18 +187,16 @@ fn find_hash_incrementally(
                             }
                         }
 
+                        // Fetch the next stored password, in case the user has duplicate passwords
+                        // that could also match on the current line
                         match hashes.next() {
                             Some(next) => { current_saved = next; }
                             None => return Ok(false)
                         };
                     },
-                    Ordering::Less => {
-                        // x < than our current hay candidate - advance x
-                        break;
-                    }
                     Ordering::Greater => {
-                        // x > than our current hay candidate - advance hay until it's higher again
-                        // advance hay until it's higher again
+                        // pwned > current - This means current is not in the hash database
+                        // However the next saved password could - therefore advance further
                         match hashes.next() {
                             Some(next) => { current_saved = next; }
                             None => return Ok(false)
