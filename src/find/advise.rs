@@ -1,5 +1,7 @@
-use std::fs::File;
-use std::io;
+use std::{
+    fs::File,
+    io,
+};
 
 /// Memory mapped advise type
 #[cfg(unix)]
@@ -92,7 +94,7 @@ pub fn fadvise(file: &File, offset: i64, length: Option<i64>, advice: FileAdvice
         libc::ESPIPE => Err(FAdviseError::ESPIPE),
         err => Err(FAdviseError::Unknown(err)),
     }
-        .unwrap()
+    .unwrap()
 }
 
 #[cfg(unix)]

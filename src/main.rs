@@ -65,9 +65,9 @@ fn run(password_reader: csv::Reader<impl Read>, hash_file: File) {
 
             match find::find_hash(&hash_file, &hashes) {
                 Ok(()) => println!("Finished"),
-                Err(err) => eprintln!("Aborted: {}", err)
+                Err(err) => eprintln!("Aborted: {}", err),
             };
-        },
+        }
         Err(err) => {
             eprintln!("Failed parse saved passwords: {:?}", err);
         }

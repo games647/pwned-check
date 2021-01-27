@@ -74,9 +74,7 @@ fn array_simd_ordered_find(data: &[Record], hays: &[Record]) -> usize {
         loop {
             let current = match next {
                 Some(inner) => inner,
-                None => {
-                    return found
-                }
+                None => return found,
             };
 
             let packed_hay = u8x32::from_slice_unaligned(&current[..]);
@@ -86,7 +84,7 @@ fn array_simd_ordered_find(data: &[Record], hays: &[Record]) -> usize {
                     found += 1;
                     next = hays.next();
                     break;
-                },
+                }
                 Ordering::Less => {
                     // x < than our current hay candidate
                     // advance x

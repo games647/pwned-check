@@ -86,7 +86,8 @@ fn create_scrambled_data(size: usize) -> Vec<Record> {
     (0..size)
         .map(|_| {
             let mut buf: Record = [0; common::RECORD_BYTE_SIZE];
-            buf.iter_mut().for_each(|x| *x = rand::thread_rng().sample(&Alphanumeric));
+            buf.iter_mut()
+                .for_each(|x| *x = rand::thread_rng().sample(&Alphanumeric));
             buf
         })
         .collect()

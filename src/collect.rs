@@ -54,8 +54,9 @@ impl Display for SavedHash {
     }
 }
 
-pub fn collect_hashes(password_reader: csv::Reader<impl Read>)
-                      -> Result<Vec<SavedHash>, csv::Error> {
+pub fn collect_hashes(
+    password_reader: csv::Reader<impl Read>,
+) -> Result<Vec<SavedHash>, csv::Error> {
     let threads = num_cpus::get();
     println!("Started {} hashing threads", threads);
 

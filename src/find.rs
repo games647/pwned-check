@@ -1,7 +1,9 @@
 use std::{cmp::Ordering, fs::File, io, io::BufReader, time::Duration};
 
-use bstr::ByteSlice;
-use bstr::io::BufReadExt;
+use bstr::{
+    ByteSlice,
+    io::BufReadExt,
+};
 use memmap::{Mmap, MmapOptions};
 use packed_simd_2::u8x32;
 use pbr::{ProgressBar, Units};
@@ -42,35 +44,30 @@ fn find_hash_mapped(map: &Mmap, hash_file: &File, hashes: &[SavedHash]) -> Resul
     // read only. Although other processes could overwrite it. Mandatory locking seems to be not
     // possible on all platforms: https://users.rust-lang.org/t/how-unsafe-is-mmap/19635/
 
-    let did_change = hash_file.metadata().and_then(|metadata| {
-        let mut permissions = metadata.permissions();
-        if metadata.permissions().readonly() {
-            Ok(false)
-        } else {
-            permissions.set_readonly(true);
-            hash_file.set_permissions(permissions)?;
-            Ok(true)
-        }
-    }).unwrap_or_else(|err| {
+    let did_change = set_readonly(hash_file, true).unwrap_or_else(|err| {
         eprintln!(
             "Failed to request read only for the hash database - \
             program could crash if there are concurrent modifications {}",
-            err);
+            err
+        );
         // fallback that we didn't change anything
         false
     });
 
     #[cfg(unix)]
-        {
-            use crate::find::advise::MemoryAdvice;
+    {
+        use crate::find::advise::MemoryAdvice;
 
-            // Safety: unsafe cast to mutable - however madvise seems to not change any data
-            let ptr = map.as_ptr() as *mut u8;
-            let len = map.len();
-            if let Err(err) = advise::madvise(ptr, len, MemoryAdvice::Sequential) {
-                eprintln!("Failed to advise OS about memory usage - continuing without it {}", err);
-            }
+        // Safety: unsafe cast to mutable - however madvise seems to not change any data
+        let ptr = map.as_ptr() as *mut u8;
+        let len = map.len();
+        if let Err(err) = advise::madvise(ptr, len, MemoryAdvice::Sequential) {
+            eprintln!(
+                "Failed to advise OS about memory usage - continuing without it {}",
+                err
+            );
         }
+    }
 
     // blocking - help the compiler with the type
     let data: &[u8] = &map;
@@ -78,11 +75,7 @@ fn find_hash_mapped(map: &Mmap, hash_file: &File, hashes: &[SavedHash]) -> Resul
     find_hash_incrementally(data, len, hashes)?;
 
     if did_change {
-        let result = hash_file.metadata().map(|metadata| {
-            let mut permissions = metadata.permissions();
-            permissions.set_readonly(false);
-            permissions
-        }).and_then(|new_perm| hash_file.set_permissions(new_perm));
+        let result = set_readonly(hash_file, false);
 
         if let Err(err) = result {
             eprintln!(
@@ -95,29 +88,52 @@ fn find_hash_mapped(map: &Mmap, hash_file: &File, hashes: &[SavedHash]) -> Resul
     Ok(())
 }
 
+fn set_readonly(file: &File, read_only: bool) -> Result<bool, io::Error> {
+    file
+        .metadata()
+        .and_then(|metadata| {
+            let mut permissions = metadata.permissions();
+            if metadata.permissions().readonly() == read_only {
+                Ok(false)
+            } else {
+                permissions.set_readonly(read_only);
+                file.set_permissions(permissions)?;
+                Ok(true)
+            }
+        })
+}
+
 fn find_hash_file_read(hash_file: &File, hashes: &[SavedHash]) -> Result<(), io::Error> {
     #[cfg(unix)]
-        advise::fadvise(hash_file, 0, None, advise::FileAdvice::Sequential);
+    advise::fadvise(hash_file, 0, None, advise::FileAdvice::Sequential);
 
     let reader = BufReader::new(hash_file);
-    let max_length = hash_file.metadata().map_or_else(|err| {
-        eprintln!("Failed to fetch metadata {:?} - Using unlimited progress bar", err);
-        0
-    }, |metadata| metadata.len());
+    let max_length = hash_file.metadata().map_or_else(
+        |err| {
+            eprintln!(
+                "Failed to fetch metadata {:?} - Using unlimited progress bar",
+                err
+            );
+            0
+        },
+        |metadata| metadata.len(),
+    );
 
     find_hash_incrementally(reader, max_length, hashes)
 }
 
-fn find_hash_incrementally(hash_reader: impl BufReadExt, max_length: u64, hashes: &[SavedHash])
-                           -> Result<(), io::Error> {
+fn find_hash_incrementally(
+    hash_reader: impl BufReadExt,
+    max_length: u64,
+    hashes: &[SavedHash],
+) -> Result<(), io::Error> {
     // This effectively makes a copy - However we can expect that there are not many
     // saved passwords. The memory consumption from multiple copies would then be negligible
-    let mut hashes = hashes.iter()
-        .map(|x| {
-            let mut hash_padded: HashPadded = [0; 32];
-            hash_padded[..SHA1_BYTE_LENGTH].copy_from_slice(&x.password_hash);
-            (u8x32::from_slice_unaligned(&hash_padded), x)
-        });
+    let mut hashes = hashes.iter().map(|x| {
+        let mut hash_padded: HashPadded = [0; 32];
+        hash_padded[..SHA1_BYTE_LENGTH].copy_from_slice(&x.password_hash);
+        (u8x32::from_slice_unaligned(&hash_padded), x)
+    });
 
     let mut bar = ProgressBar::new(max_length);
     bar.set_units(Units::Bytes);
