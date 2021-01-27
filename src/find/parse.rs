@@ -3,12 +3,13 @@ use std::num::ParseIntError;
 
 use data_encoding::HEXUPPER;
 
-use crate::{SHA1_BYTE_LENGTH, Sha1Hash};
+use crate::SHA1_BYTE_LENGTH;
+use crate::find::HashPadded;
 use crate::find::parse::ParseHashError::{IntError, InvalidFormat};
 
 #[derive(Debug, Default)]
 pub struct PwnedHash {
-    pub hash: Sha1Hash,
+    pub hash_padded: HashPadded,
     // lazy load, because we only need it on an equal hit
     pub count: Option<Result<u32, ParseHashError>>,
 }
@@ -25,14 +26,21 @@ impl TryFrom<&[u8]> for PwnedHash {
 }
 
 impl PwnedHash {
+    // convenience method for getting the hash without the padding
+    #[allow(dead_code)]
+    pub fn hash(&self) -> &[u8] {
+        &self.hash_padded[0..SHA1_BYTE_LENGTH]
+    }
+
     pub fn parse_new_hash(&mut self, line: &[u8]) -> Result<(), ParseHashError> {
         assert!(&[line[40]] == b":");
 
         let hash_part = &line[..40];
         let len = HEXUPPER
-            .decode_mut(hash_part, &mut self.hash)
+            // panics when our padded array is larger
+            .decode_mut(hash_part, &mut self.hash_padded[..SHA1_BYTE_LENGTH])
             .map_err(|_| InvalidFormat())?;
-        // verify that the length is not less
+        // verify that the length is not less or higher
         assert_eq!(len, SHA1_BYTE_LENGTH);
 
         // reset count number if did before
@@ -75,7 +83,7 @@ mod test {
     use assert_matches::assert_matches;
     use data_encoding::HEXUPPER;
 
-    use crate::SHA1_BYTE_LENGTH;
+    use crate::find::SIMD_WIDTH;
 
     use super::*;
 
@@ -189,17 +197,17 @@ mod test {
     fn test_parse() {
         let bytes_line = TEST_LINE.as_bytes();
         let record: PwnedHash = bytes_line.try_into().unwrap();
-        assert_matches!(record.count.unwrap(), Ok(4));
         assert_eq!(
-            HEXUPPER.encode(&record.hash),
+            HEXUPPER.encode(record.hash()),
             "000000005AD76BD555C1D6D771DE417A4B87E4B4"
         );
+        assert_matches!(record.count.unwrap(), Ok(4));
     }
 
     #[test]
     fn test_overriding() {
         let mut record: PwnedHash = PwnedHash {
-            hash: [0; SHA1_BYTE_LENGTH],
+            hash_padded: [0; SIMD_WIDTH],
             count: Some(Ok(2)),
         };
 
@@ -211,7 +219,7 @@ mod test {
         assert_matches!(record.count, Some(Ok(4)));
 
         assert_eq!(
-            HEXUPPER.encode(&record.hash),
+            HEXUPPER.encode(&record.hash()),
             "000000005AD76BD555C1D6D771DE417A4B87E4B4"
         );
     }

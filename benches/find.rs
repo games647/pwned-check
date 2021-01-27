@@ -79,7 +79,7 @@ fn array_simd_ordered_find(data: &[Record], hays: &[Record]) -> usize {
                 }
             };
 
-            let mut packed_hay = u8x32::from_slice_unaligned(&current[..]);
+            let packed_hay = u8x32::from_slice_unaligned(&current[..]);
             match packed_x.lex_ord().cmp(&packed_hay.lex_ord()) {
                 Ordering::Equal => {
                     // found an exact match - advance hay
@@ -133,17 +133,16 @@ fn find_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("find");
 
     let mut data_sorted = common::create_scrambled_data(DATA_SIZE);
-    let mut max_hays = common::create_scrambled_data(HAY_SIZE);
+    let mut sorted_hays = common::create_scrambled_data(HAY_SIZE);
 
     data_sorted.sort_unstable();
-
-    max_hays.sort_unstable();
+    sorted_hays.sort_unstable();
 
     let custom_data: Vec<SimdHolder> = data_sorted.iter().map(Into::into).collect();
-    let custom_hay: Vec<SimdHolder> = max_hays.iter().map(Into::into).collect();
+    let custom_hay: Vec<SimdHolder> = sorted_hays.iter().map(Into::into).collect();
 
     for &hay_size in &[32, 64, 128, 256] {
-        let sorted_hay = &sorted[..hay_size];
+        let sorted_hay = &sorted_hays[..hay_size];
         let custom_h = &custom_hay[..hay_size];
 
         macro_rules! gen_bench {

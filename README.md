@@ -17,6 +17,7 @@ Feedback appreciated.
 
 * Offline
 * Multi-Threaded
+* Cross-platform
 * Clear read passwords from memory
 * Memory mapping
 * SIMD comparisons

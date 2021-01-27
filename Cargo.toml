@@ -24,10 +24,6 @@ memmap = "0.7"
 # Progressbar
 pbr = "1.0"
 
-# Custom hasher implementation - This has the possible to hash multiple bytes at the same time, but doesn't provide
-# DoS protection
-fxhash = "0.2"
-
 # Clear memory of clear text credentials
 secstr = { version = "0.4", features = ["serde"] }
 
@@ -80,6 +76,10 @@ rand = "0.8"
 
 # Parallel iterator
 rayon = "1.5"
+
+# Custom hasher implementation - This has the possible to hash multiple bytes at the same time, but doesn't provide
+# DoS protection
+fxhash = "0.2"
 
 # Alternative to hashset/map for more memory local indicies
 indexmap = "1.6"
