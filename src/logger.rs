@@ -3,14 +3,16 @@ use log::{Level, LevelFilter, Metadata, Record};
 struct SimpleLogger;
 
 impl log::Log for SimpleLogger {
-    fn enabled(&self, _: &Metadata<'_>) -> bool { true }
+    fn enabled(&self, _: &Metadata<'_>) -> bool {
+        true
+    }
 
     fn log(&self, record: &Record<'_>) {
         if self.enabled(record.metadata()) {
             match record.level() {
                 Level::Error => eprintln!("{}", record.args()),
                 Level::Info | Level::Warn => println!("{}", record.args()),
-                _ => println!("Verbose: {}", record.args())
+                _ => println!("Verbose: {}", record.args()),
             }
         }
     }

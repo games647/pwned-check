@@ -1,4 +1,4 @@
-use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use packed_simd_2::u8x32;
 use rand::prelude::*;
 use rayon::prelude::*;

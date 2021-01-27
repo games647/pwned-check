@@ -45,7 +45,7 @@ use [`eq` and `gt`](https://github.com/rust-lang/packed_simd/blob/f14f6911b277a0
 
 ## Password recommendations
 
-* Use multi factor authentication to increase steps required
+* Use multi-factor authentication to increase steps required
 * Use unique passwords for each account
     * A hacked account or website won't impact the accounts from other sites
 * Use automatically generated passwords
@@ -114,7 +114,7 @@ the data. As said [before](#Index), this doesn't seem practical here.
 ## Learned
 
 * Lifetimes help to guarantee the scope of variable where you use non-copy operations
-    * In-place operations or I/O buffer use without memcpy or allocation
+    * In-place operations or I/O buffer use without `memcpy` or allocation
 * `FromStr` doesn't support lifetimes.
     * Instances where you need to deserialize from a `&str` and the result uses a substring of the original, an owned
       representation from `to_string` (implying a memory allocation) isn't always necessary.
@@ -181,7 +181,7 @@ the data. As said [before](#Index), this doesn't seem practical here.
 
 Source https://llogiq.github.io/2017/06/01/perf-pitfalls.html
 
-### Read/Memmap/DIO
+### Read/Memory map/DIO
 
 * Memory mapping is expensive to open, but for big files worth it
 * No copies from kernel space to user space

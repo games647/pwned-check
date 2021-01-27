@@ -1,6 +1,6 @@
 use std::iter;
 
-use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use rand::{distributions::Alphanumeric, prelude::*};
 use ring::digest::{digest, Digest, SHA1_FOR_LEGACY_USE_ONLY};
 

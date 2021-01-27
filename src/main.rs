@@ -1,6 +1,6 @@
 use std::{fs::File, io::Read};
 
-use clap::{App, Arg, crate_description, crate_name, crate_version};
+use clap::{crate_description, crate_name, crate_version, App, Arg};
 use log::{debug, error, info};
 use ring::digest::SHA1_OUTPUT_LEN;
 
@@ -31,8 +31,8 @@ fn main() {
         Err(err) => error!("Cannot access password file {}", err),
         Ok(file) => match reader {
             Err(err) => error!("Cannot access hash file {}", err),
-            Ok(reader) => run(reader, file)
-        }
+            Ok(reader) => run(reader, file),
+        },
     }
 }
 

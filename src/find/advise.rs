@@ -1,7 +1,4 @@
-use std::{
-    fs::File,
-    io,
-};
+use std::{fs::File, io};
 
 /// Memory mapped advise type
 #[cfg(unix)]
@@ -113,8 +110,7 @@ enum FAdviseError {
 #[cfg(unix)]
 #[cfg(test)]
 mod test {
-    use std::{panic, ptr};
-    use std::os::unix::io::FromRawFd;
+    use std::{os::unix::io::FromRawFd, panic, ptr};
 
     use assert_matches::assert_matches;
     use memmap::MmapOptions;

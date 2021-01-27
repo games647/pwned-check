@@ -1,14 +1,11 @@
-use std::{
-    convert::TryFrom,
-    num::ParseIntError,
-};
+use std::{convert::TryFrom, num::ParseIntError};
 
 use data_encoding::HEXUPPER;
 
 use crate::{
     find::{
-        HashPadded,
         parse::ParseHashError::{IntError, InvalidFormat},
+        HashPadded,
     },
     SHA1_BYTE_LENGTH,
 };

@@ -8,7 +8,7 @@ use std::{
     thread,
 };
 
-use crossbeam_channel::{bounded, Receiver, Sender, unbounded};
+use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
 use log::debug;
 use ring::digest::{digest, Digest, SHA1_FOR_LEGACY_USE_ONLY};
 use secstr::SecStr;

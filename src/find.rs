@@ -1,9 +1,6 @@
 use std::{cmp::Ordering, fs::File, io, io::BufReader, time::Duration};
 
-use bstr::{
-    ByteSlice,
-    io::BufReadExt,
-};
+use bstr::{io::BufReadExt, ByteSlice};
 use log::{debug, error, info};
 use memmap::{Mmap, MmapOptions};
 use packed_simd_2::u8x32;
@@ -88,18 +85,16 @@ fn find_hash_mapped(map: &Mmap, hash_file: &File, hashes: &[SavedHash]) -> Resul
 }
 
 fn set_readonly(file: &File, read_only: bool) -> Result<bool, io::Error> {
-    file
-        .metadata()
-        .and_then(|metadata| {
-            let mut permissions = metadata.permissions();
-            if metadata.permissions().readonly() == read_only {
-                Ok(false)
-            } else {
-                permissions.set_readonly(read_only);
-                file.set_permissions(permissions)?;
-                Ok(true)
-            }
-        })
+    file.metadata().and_then(|metadata| {
+        let mut permissions = metadata.permissions();
+        if metadata.permissions().readonly() == read_only {
+            Ok(false)
+        } else {
+            permissions.set_readonly(read_only);
+            file.set_permissions(permissions)?;
+            Ok(true)
+        }
+    })
 }
 
 fn find_hash_file_read(hash_file: &File, hashes: &[SavedHash]) -> Result<(), io::Error> {
@@ -170,19 +165,23 @@ fn find_hash_incrementally(
                         // This means we need advance further in the hash database - reading the
                         // next line
                         break;
-                    },
+                    }
                     Ordering::Equal => {
                         // found an exact match
                         match record.parse_count(line).as_ref() {
                             Ok(count) => {
                                 info!(
-                                    "Your password for the following account {} has been pwned {}x times",
+                                    "Your password for the following account {} \
+                                    has been pwned {}x times",
                                     current_saved.1, count
                                 );
                             }
                             Err(err) => {
-                                error!("Failed to parse count number in: {} - {:?}",
-                                          line.to_str().unwrap_or(""), err);
+                                error!(
+                                    "Failed to parse count number in: {} - {:?}",
+                                    line.to_str().unwrap_or(""),
+                                    err
+                                );
                                 info!("Your password has been pwned {}", current_saved.1);
                             }
                         }
@@ -190,16 +189,20 @@ fn find_hash_incrementally(
                         // Fetch the next stored password, in case the user has duplicate passwords
                         // that could also match on the current line
                         match hashes.next() {
-                            Some(next) => { current_saved = next; }
-                            None => return Ok(false)
+                            Some(next) => {
+                                current_saved = next;
+                            }
+                            None => return Ok(false),
                         };
-                    },
+                    }
                     Ordering::Greater => {
                         // pwned > current - This means current is not in the hash database
                         // However the next saved password could - therefore advance further
                         match hashes.next() {
-                            Some(next) => { current_saved = next; }
-                            None => return Ok(false)
+                            Some(next) => {
+                                current_saved = next;
+                            }
+                            None => return Ok(false),
                         };
                     }
                 }

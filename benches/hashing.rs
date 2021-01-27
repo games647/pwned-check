@@ -1,4 +1,4 @@
-use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use crossbeam_channel::{bounded, Receiver};
 use crossbeam_utils::thread;
 use data_encoding::HEXUPPER;
