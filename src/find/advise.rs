@@ -110,6 +110,7 @@ enum FAdviseError {
     Unknown(i32),
 }
 
+#[cfg(unix)]
 #[cfg(test)]
 mod test {
     use std::{panic, ptr};
@@ -135,6 +136,15 @@ mod test {
 
         let expected: Result<(), io::Error> = Ok(());
         assert_matches!(expected, _result);
+    }
+
+    #[test]
+    fn madvise_not_aligned() {
+        let ptr = "test".as_ptr();
+        let _res = madvise(ptr as *mut u8, 1, MemoryAdvice::Sequential);
+
+        let expected: Result<(), io::Error> = Err(io::Error::from_raw_os_error(libc::EINVAL));
+        assert_matches!(expected, _res);
     }
 
     #[test]

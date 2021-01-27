@@ -8,8 +8,8 @@ impl log::Log for SimpleLogger {
     fn log(&self, record: &Record<'_>) {
         if self.enabled(record.metadata()) {
             match record.level() {
-                Level::Info | Level::Warn => println!("{}", record.args()),
                 Level::Error => eprintln!("{}", record.args()),
+                Level::Info | Level::Warn => println!("{}", record.args()),
                 _ => println!("Verbose: {}", record.args())
             }
         }
@@ -18,12 +18,45 @@ impl log::Log for SimpleLogger {
     fn flush(&self) {}
 }
 
-pub fn init(verbose: bool) {
-    let mut max_level = LevelFilter::Error;
+fn set_verbose_level(verbose: bool) {
+    let mut max_level = LevelFilter::Info;
     if verbose {
         max_level = LevelFilter::Trace;
     }
 
-    log::set_boxed_logger(Box::new(SimpleLogger))
-        .map(|()| log::set_max_level(max_level)).unwrap();
+    log::set_max_level(max_level);
+}
+
+pub fn set_logger(verbose: bool) {
+    // Safety: safe, because we set it globally once
+    log::set_boxed_logger(Box::new(SimpleLogger)).unwrap();
+
+    set_verbose_level(verbose);
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn is_allowed(level: Level) -> bool {
+        level <= log::max_level()
+    }
+
+    #[test]
+    fn test_not_verbose() {
+        set_verbose_level(false);
+
+        assert!(is_allowed(Level::Error));
+        assert!(is_allowed(Level::Info));
+        assert!(!is_allowed(Level::Debug));
+    }
+
+    #[test]
+    fn test_verbose() {
+        set_verbose_level(true);
+
+        assert!(is_allowed(Level::Error));
+        assert!(is_allowed(Level::Info));
+        assert!(is_allowed(Level::Debug));
+    }
 }

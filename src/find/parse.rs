@@ -212,6 +212,22 @@ mod test {
     }
 
     #[test]
+    #[should_panic]
+    #[allow(unused_must_use)]
+    fn test_parse_invalid_format() {
+        // no ':'
+        PwnedHash::try_from("000000005AD76BD555C1D6D771DE417A4B87E4B4514141".as_bytes());
+    }
+
+    #[test]
+    fn test_parse_invalid_hex() {
+        // g is not a valid hex char
+        let _res = PwnedHash::try_from("GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG:4".as_bytes());
+        let expected: Result<PwnedHash, ParseHashError> = Err(InvalidFormat());
+        assert_matches!(expected, _res);
+    }
+
+    #[test]
     fn test_overriding() {
         let mut record: PwnedHash = PwnedHash {
             hash_padded: [0; SIMD_WIDTH],
@@ -237,5 +253,30 @@ mod test {
         let record: PwnedHash = bytes_line.try_into().unwrap();
         let res = record.count.unwrap();
         assert_matches!(res, Err(IntError(_)));
+    }
+
+    #[test]
+    fn test_number_length_error() {
+        // no number behind ':'
+        let bytes_line = "000000005AD76BD555C1D6D771DE417A4B87E4B4:";
+        let record: PwnedHash = bytes_line.as_bytes().try_into().unwrap();
+        let res = record.count.unwrap();
+        assert_matches!(res, Err(IntError(_)));
+    }
+
+    #[test]
+    fn test_invalid_utf() {
+        let mut v = vec![];
+        for x in b"000000005AD76BD555C1D6D771DE417A4B87E4B4:" {
+            v.push(*x);
+        }
+
+        // invalid UTF-8
+        let x1 = b"\xD2";
+        v.push(*x1.first().unwrap());
+
+        let record: PwnedHash = v[..].try_into().unwrap();
+        let res = record.count.unwrap();
+        assert_matches!(res, Err(InvalidFormat()));
     }
 }

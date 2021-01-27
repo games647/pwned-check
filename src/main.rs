@@ -20,7 +20,8 @@ fn main() {
     let hash_file = matches.value_of_os(HASH_KEY).unwrap();
 
     let verbose = matches.is_present(VERBOSE_KEY);
-    logger::init(verbose);
+    logger::set_logger(verbose);
+
     debug!("Using passwords file: {:?}", passwords_file);
     debug!("Using hash file: {:?}", hash_file);
 
