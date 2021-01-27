@@ -4,6 +4,7 @@ use bstr::{
     ByteSlice,
     io::BufReadExt,
 };
+use log::{debug, error, info};
 use memmap::{Mmap, MmapOptions};
 use packed_simd_2::u8x32;
 use pbr::{ProgressBar, Units};
@@ -20,17 +21,17 @@ type HashPadded = [u8; SIMD_WIDTH];
 
 pub fn find_hash(hash_file: &File, hashes: &[SavedHash]) -> Result<(), io::Error> {
     if hashes.is_empty() {
-        eprintln!("No stored passwords found");
+        error!("No stored passwords found");
         return Ok(());
     }
 
     match unsafe { MmapOptions::new().map(&hash_file) } {
         Ok(map) => {
-            println!("Using memory maps - writes to the file or map could cause program crashes");
+            debug!("Using memory maps - writes to the file or map could cause program crashes");
             find_hash_mapped(&map, hash_file, hashes)
         }
         Err(err) => {
-            eprintln!("Failed to use memory maps using incremental search {}", err);
+            error!("Failed to use memory maps using incremental search {}", err);
             find_hash_file_read(hash_file, hashes)
         }
     }
@@ -45,7 +46,7 @@ fn find_hash_mapped(map: &Mmap, hash_file: &File, hashes: &[SavedHash]) -> Resul
     // possible on all platforms: https://users.rust-lang.org/t/how-unsafe-is-mmap/19635/
 
     let did_change = set_readonly(hash_file, true).unwrap_or_else(|err| {
-        eprintln!(
+        error!(
             "Failed to request read only for the hash database - \
             program could crash if there are concurrent modifications {}",
             err
@@ -62,7 +63,7 @@ fn find_hash_mapped(map: &Mmap, hash_file: &File, hashes: &[SavedHash]) -> Resul
         let ptr = map.as_ptr() as *mut u8;
         let len = map.len();
         if let Err(err) = advise::madvise(ptr, len, MemoryAdvice::Sequential) {
-            eprintln!(
+            error!(
                 "Failed to advise OS about memory usage - continuing without it {}",
                 err
             );
@@ -78,7 +79,7 @@ fn find_hash_mapped(map: &Mmap, hash_file: &File, hashes: &[SavedHash]) -> Resul
         let result = set_readonly(hash_file, false);
 
         if let Err(err) = result {
-            eprintln!(
+            error!(
                 "Failed to restore old readable state - please check the file yourself {}",
                 err
             )
@@ -110,7 +111,7 @@ fn find_hash_file_read(hash_file: &File, hashes: &[SavedHash]) -> Result<(), io:
     let reader = BufReader::new(hash_file);
     let max_length = hash_file.metadata().map_or_else(
         |err| {
-            eprintln!(
+            error!(
                 "Failed to fetch metadata {:?} - Using unlimited progress bar",
                 err
             );
@@ -154,7 +155,7 @@ fn find_hash_incrementally(
 
             if let Err(err) = record.parse_new_hash(line) {
                 // abort because then there are probably more errors
-                eprintln!("Failed to parse hash {:?}", err);
+                error!("Failed to parse hash {:?}", err);
                 return Ok(false);
             }
 
@@ -167,15 +168,15 @@ fn find_hash_incrementally(
                         // found an exact match - advance hay
                         match record.parse_count(line).as_ref() {
                             Ok(count) => {
-                                println!(
+                                info!(
                                     "Your password for the following account {} has been pwned {}x times",
                                     current_saved.1, count
                                 );
                             }
                             Err(err) => {
-                                eprintln!("Failed to parse count number in: {} - {:?}",
+                                error!("Failed to parse count number in: {} - {:?}",
                                           line.to_str().unwrap_or(""), err);
-                                println!("Your password has been pwned {}", current_saved.1);
+                                info!("Your password has been pwned {}", current_saved.1);
                             }
                         }
 

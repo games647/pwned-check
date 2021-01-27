@@ -1,6 +1,7 @@
 use std::{fs::File, io::Read};
 
 use clap::{App, Arg, crate_description, crate_name, crate_version};
+use log::{debug, error, info};
 use ring::digest::SHA1_OUTPUT_LEN;
 
 const PASSWORD_KEY: &str = "passwords_file";
@@ -19,10 +20,9 @@ fn main() {
     let hash_file = matches.value_of_os(HASH_KEY).unwrap();
 
     let verbose = matches.is_present(VERBOSE_KEY);
-    if verbose {
-        println!("Using passwords file: {:?}", passwords_file);
-        println!("Using hash file: {:?}", hash_file);
-    }
+    logger::init(verbose);
+    debug!("Using passwords file: {:?}", passwords_file);
+    debug!("Using hash file: {:?}", hash_file);
 
     let hash_file = File::open(hash_file).expect("Hash file is not accessible");
     let reader = csv::Reader::from_path(passwords_file).expect("password file is not accessible");
@@ -56,26 +56,27 @@ fn create_cli_options<'help>() -> App<'help> {
 fn run(password_reader: csv::Reader<impl Read>, hash_file: File) {
     match collect::collect_hashes(password_reader) {
         Ok(mut hashes) => {
-            println!("Finished hashing");
+            info!("Finished hashing");
 
             // unstable is slightly faster than the normal search - we don't care about mixed equal
             // entries so lets use this
             hashes.sort_unstable();
-            println!("Sorted");
+            info!("Sorted");
 
             match find::find_hash(&hash_file, &hashes) {
-                Ok(()) => println!("Finished"),
-                Err(err) => eprintln!("Aborted: {}", err),
+                Ok(()) => info!("Finished"),
+                Err(err) => error!("Aborted: {}", err),
             };
         }
         Err(err) => {
-            eprintln!("Failed parse saved passwords: {:?}", err);
+            error!("Failed parse saved passwords: {:?}", err);
         }
     };
 }
 
 mod collect;
 mod find;
+mod logger;
 
 #[cfg(test)]
 mod test {

@@ -8,7 +8,8 @@ use std::{
     thread,
 };
 
-use crossbeam_channel::{bounded, Receiver, Sender};
+use crossbeam_channel::{bounded, Receiver, Sender, unbounded};
+use log::debug;
 use ring::digest::{digest, Digest, SHA1_FOR_LEGACY_USE_ONLY};
 use secstr::SecStr;
 use serde::Deserialize;
@@ -58,10 +59,10 @@ pub fn collect_hashes(
     password_reader: csv::Reader<impl Read>,
 ) -> Result<Vec<SavedHash>, csv::Error> {
     let threads = num_cpus::get();
-    println!("Started {} hashing threads", threads);
+    debug!("Started {} hashing threads", threads);
 
     let (tx, rx) = bounded(PASSWORD_BUFFER);
-    let (done, quit) = bounded(0);
+    let (done, quit) = unbounded();
     for _ in 0..threads {
         let local_rx: Receiver<SavedPassword> = rx.clone();
         let local_done = done.clone();
