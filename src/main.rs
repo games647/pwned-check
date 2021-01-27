@@ -24,9 +24,15 @@ fn main() {
     debug!("Using passwords file: {:?}", passwords_file);
     debug!("Using hash file: {:?}", hash_file);
 
-    let hash_file = File::open(hash_file).expect("Hash file is not accessible");
-    let reader = csv::Reader::from_path(passwords_file).expect("password file is not accessible");
-    run(reader, hash_file);
+    let hash_file = File::open(hash_file);
+    let reader = csv::Reader::from_path(passwords_file);
+    match hash_file {
+        Err(err) => error!("Cannot access password file {}", err),
+        Ok(file) => match reader {
+            Err(err) => error!("Cannot access hash file {}", err),
+            Ok(reader) => run(reader, file)
+        }
+    }
 }
 
 fn create_cli_options<'help>() -> App<'help> {
