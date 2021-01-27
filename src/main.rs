@@ -61,24 +61,6 @@ fn run(password_reader: csv::Reader<impl Read>, hash_file: File) {
     let mut hashes = collect::collect_hashes(password_reader).unwrap();
     println!("Finished hashing");
 
-    hashes.push(SavedHash {
-        url: "TEST_URL".to_string(),
-        username: "user".to_string(),
-        password_hash: HEXUPPER.decode(b"00000006BAB7FC3113AA73DE3589630FC08218E7").unwrap().try_into().unwrap(),
-    });
-
-    hashes.push(SavedHash {
-        url: "TEST_URL3".to_string(),
-        username: "user3".to_string(),
-        password_hash: HEXUPPER.decode(b"00000006BAB7FC3113AA73DE3589630FC08218E7").unwrap().try_into().unwrap(),
-    });
-
-    hashes.push(SavedHash {
-        url: "TEST_URL2".to_string(),
-        username: "user2".to_string(),
-        password_hash: HEXUPPER.decode(b"0000002363B67EAA39B4413802FC10BAC2D0C786").unwrap().try_into().unwrap(),
-    });
-
     // unstable is slightly faster than the normal search - we don't care about mixed equal
     // entries so lets use this
     hashes.sort_unstable();

@@ -19,8 +19,8 @@ const PASSWORD_BUFFER: usize = 128;
 
 #[derive(Debug, Eq)]
 pub struct SavedHash {
-    pub(crate) url: String,
-    pub(crate) username: String,
+    url: String,
+    username: String,
     pub password_hash: Sha1Hash,
 }
 
