@@ -8,13 +8,32 @@ Small application to scan exported passwords from chromium or Firefox against th
 This project is also intended for learning Rust (incl. parallelism with channel communication) and its ecosystem.
 Feedback appreciated.
 
+### Design
+
+#### Load saved passwords
+
+Passwords are exported using the browser. This tool reads the csv then in sequential order and submits the records to a
+queue. This queue will hash the passwords in parallel based on the number of cores. Here an allocation is required for
+each record, because we use keep all data in memory.
+
+The records are then sorted according to their hash to be used later. Meanwhile, the plain-text password will be
+dropped.
+
+#### Compares
+
+The hash database file is then read using ASCII characters to skip UTF-8 parsing. Afterwards, the hashes are compared
+using SIMD. Using their lexicographically order, we reduce the number of multiple comparisons. Internally this will
+use [`eq` and `gt`](https://github.com/rust-lang/packed_simd/blob/f14f6911b277a0f4522eab03db222ee363c6d6d0/src/api/cmp/partial_ord.rs#L19)
+.
+
+
 ## Features
 
 * Offline
 * Cross-platform
 * Clear read passwords from memory
 
-## Optimizations
+### Optimizations
 
 * Multi-Threaded hashing of stored passwords
 * Memory mapping if supported
@@ -26,6 +45,7 @@ Feedback appreciated.
 
 ## Password recommendations
 
+* Use multi factor authentication to increase steps required
 * Use unique passwords for each account
     * A hacked account or website won't impact the accounts from other sites
 * Use automatically generated passwords
@@ -45,7 +65,8 @@ Then you can find the executable in the `target/release` directory
    expects the list to be sorted by hash for better efficiency and to have only SHA-1 hashes.
 2. Unpack the downloaded file
 2. Export your existing passwords somewhere safe. **Note**: A persistent storage isn't a good idea, because the file
-   could be restored even if deleted. You could store it in memory (ex: Linux in /dev/shm) and delete it later.
+   could be restored even if deleted. You could store it in memory (ex: Linux in /tmp depending on the permissions) and 
+   delete it later (`shred`).
     * Firefox: Open `about:logins` and click the three `horizontal` dots. There you can export logins.
     * Chromium: Open `chrome://settings/passwords` and click the three `vertical` dots on the right side to export it
 3. Run the executable of this project with the following usage:
@@ -61,48 +82,30 @@ Your password for the following account USERNAME@WEBSITE has been pwned 25x time
 104.71 MB/s Finished
 ```
 
-## Design
-
-### Load saved passwords
-
-Passwords are exported using the browser. This tool reads the csv then in sequential order and submits the records to a
-queue. This queue will hash the passwords in parallel based on the number of cores. Here an allocation is required for
-each record, because we use keep all data in memory.
-
-The records are then sorted according to their hash to be used later. Meanwhile, the plain-text password will be
-dropped.
-
-### Compares
-
-The hash database file is then read using ASCII characters to skip UTF-8 parsing. Afterwards, the hashes are compared
-using SIMD. Using their lexicographically order, we reduce the number of multiple comparisons. Internally this will
-use [`eq` and `gt`](https://github.com/rust-lang/packed_simd/blob/f14f6911b277a0f4522eab03db222ee363c6d6d0/src/api/cmp/partial_ord.rs#L19)
-.
-
-### Further optimizations
+## Further optimizations
 
 All this requires benchmarking first.
 
-#### Index
+### Index
 
 This tool is specifically designed for individuals. So the main use case is to do only a single run. There are tools
 like [csv-index](https://docs.rs/csv-index/) that could create an intermediate index over the data. This could be useful
 for concurrent access to the file.
 
-#### Binary searching
+### Binary searching
 
 Currently, we scan the entries and compare them using their lexicographically order. We could also skip a couple of
 hashes from the database, because it's likely that there are many more hashes than user stored ones. This requires us to
 jump back if we skipped too far. Nevertheless, this requires benchmarking also considering that we will destroy the CPU
 performance features (Branch predictor, Pipelining).
 
-#### Parallel compares
+### Parallel compares
 
 Similar to the previous points, it's possible to scan the hash database file using concurrent file accesses. Using the
 index (to know the number of bytes from line numbers) and binary searching, we could skip multiple operating system
 pages. SSD drives could benefit the most.
 
-#### Bloom filter
+### Bloom filter
 
 There also other projects that developed an intermediate filter to improve the search
 ([bloom-filter]([bloom filter](https://github.com/bertrand-maujean/ihbpwbf))). However, this requires a full run through
@@ -137,7 +140,7 @@ the data. As said [before](#Index), this doesn't seem practical here.
     * Code generation with `build.rs` is also possible, but complicated
     * Alternative: Crates like `init_with`
 
-### Discovered optimizations
+## Discovered optimizations
 
 * Build with release tag `cargo build --release` has massive impact
 * Collecting data and then parallelize could improve performance
@@ -154,7 +157,7 @@ the data. As said [before](#Index), this doesn't seem practical here.
     * Performance could vary depending on the compiler settings
       (`target-cpu=native` and LTO had very negative influence)
 
-#### CSV Crate suggestions
+### CSV Crate suggestions
 
 * Drop UTF-8 decoding if not necessary (`ByteRecord`)
 * Drop per line/record allocations - Try to re-use them
@@ -162,7 +165,7 @@ the data. As said [before](#Index), this doesn't seem practical here.
 * Use borrowed data instead of owned data, because later often requires copy
     * Ex: For example: `&'a str` for records
 
-#### Pitfalls
+### Pitfalls
 
 * Standard I/O is unbuffered - use buffered if applicable
 * Use `target-cpu=native` to leverage specific optimizations - however experiences may differ
@@ -178,7 +181,7 @@ the data. As said [before](#Index), this doesn't seem practical here.
 
 Source https://llogiq.github.io/2017/06/01/perf-pitfalls.html
 
-#### Read/Memmap/DIO
+### Read/Memmap/DIO
 
 * Memory mapping is expensive to open, but for big files worth it
 * No copies from kernel space to user space
