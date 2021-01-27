@@ -2,13 +2,8 @@
 
 ## Description
 
-Small application to scan exported passwords from chromium or FireFox against the offline hash database from
+Small application to scan exported passwords from chromium or Firefox against the offline hash database from
 [haveibeenpwned](https://haveibeenpwned.com) in order to verify if any password is exposed.
-
-The exported passwords are read and hashed in parallel. The resulting hashes are then compared to the database. Current
-implementation is only targeted for personal use. This means that we expect only single iterations through the database.
-For multiple searches (like an online service) an intermediate index or
-[bloom filter](https://github.com/bertrand-maujean/ihbpwbf) would improve performance greatly.
 
 This project is also intended for learning Rust (incl. parallelism with channel communication) and its ecosystem.
 Feedback appreciated.
@@ -16,12 +11,18 @@ Feedback appreciated.
 ## Features
 
 * Offline
-* Multi-Threaded
 * Cross-platform
 * Clear read passwords from memory
-* Memory mapping
+
+## Optimizations
+
+* Multi-Threaded hashing of stored passwords
+* Memory mapping if supported
+* Sorted linear search by using lexicographically order of the downloaded hash database
 * SIMD comparisons
-* `fadvise` and `madvise` for unix based systems
+* Read hash database from ASCII
+* Re-use allocations if possible - for example database reading only uses borrowed data
+* `fadvise` and `madvise` for UNIX based systems
 
 ## Password recommendations
 
@@ -51,25 +52,76 @@ Then you can find the executable in the `target/release` directory
 
 > pwned-check <EXPORTED_CSV> <DOWNLOADED_HASH_TXT> [-v]
 
+```
+pwned-check password.csv pwned-passwords-sha1-ordered-by-hash-v7.txt -v
+987.70 MB / 25.18 GB [=>----------------------------------] 3.83 % 493.84 MB/s 50s 
+Your password for the following account USERNAME@WEBSITE has been pwned 25x times
+3.36 GB / 25.18 GB [======>-----------------------------] 13.32 % 490.78 MB/s 46s
+...
+104.71 MB/s Finished
+```
+
+## Design
+
+### Load saved passwords
+
+Passwords are exported using the browser. This tool reads the csv then in sequential order and submits the records to a
+queue. This queue will hash the passwords in parallel based on the number of cores. Here an allocation is required for
+each record, because we use keep all data in memory.
+
+The records are then sorted according to their hash to be used later. Meanwhile, the plain-text password will be
+dropped.
+
+### Compares
+
+The hash database file is then read using ASCII characters to skip UTF-8 parsing. Afterwards, the hashes are compared
+using SIMD. Using their lexicographically order, we reduce the number of multiple comparisons. Internally this will
+use [`eq` and `gt`](https://github.com/rust-lang/packed_simd/blob/f14f6911b277a0f4522eab03db222ee363c6d6d0/src/api/cmp/partial_ord.rs#L19)
+.
+
+### Further optimizations
+
+All this requires benchmarking first.
+
+#### Index
+
+This tool is specifically designed for individuals. So the main use case is to do only a single run. There are tools
+like [csv-index](https://docs.rs/csv-index/) that could create an intermediate index over the data. This could be useful
+for concurrent access to the file.
+
+#### Binary searching
+
+Currently, we scan the entries and compare them using their lexicographically order. We could also skip a couple of
+hashes from the database, because it's likely that there are many more hashes than user stored ones. This requires us to
+jump back if we skipped too far. Nevertheless, this requires benchmarking also considering that we will destroy the CPU
+performance features (Branch predictor, Pipelining).
+
+#### Parallel compares
+
+Similar to the previous points, it's possible to scan the hash database file using concurrent file accesses. Using the
+index (to know the number of bytes from line numbers) and binary searching, we could skip multiple operating system
+pages. SSD drives could benefit the most.
+
+#### Bloom filter
+
+There also other projects that developed an intermediate filter to improve the search
+([bloom-filter]([bloom filter](https://github.com/bertrand-maujean/ihbpwbf))). However, this requires a full run through
+the data. As said [before](#Index), this doesn't seem practical here.
+
 ## Learned
 
 * Lifetimes help to guarantee the scope of variable where you use non-copy operations
+    * In-place operations or I/O buffer use without memcpy or allocation
 * `FromStr` doesn't support lifetimes.
     * Instances where you need to deserialize from a `&str` and the result uses a substring of the original, an owned
       representation from `to_string` (implying a memory allocation) isn't always necessary.
     * Alternative you could use `impl<'a> TryFrom<&'a str> for YOUR_TRAIT/STRUCT<'a>` for this functionality
-    * Or consuming it with the owned `String` where you modify
-* Passing closures without capture (`map(do_something)`) only work if the type matches exactly
+    * Or consuming it with the owned `String`
+* Passing closures without capture (`map(self::do_something)`) only work if the type matches exactly
     * `fn hash_func(x: &[u8])` can be only called if the type is a slice and not a Vec
-    * However, it works with a capture `data.iter().map(|x| do_something(x)).collect()`
     * Alternative: `data.iter().map(Vec::as_slice).map(hash_string).collect()`
-* Rust gives you so much flexible to even use the read BUFFER if you guarantee its lifetime
-* Rust performs many in-place operations without allocating
 * `parse` convert easily types (String -> integer) or even errors to others
-* Result objects
-    * Can be very easily returned early using `?`
-    * Easy matching on the source of error (i.e. Integer parsing error because of X)
-        * Without the need to fiddling with Strings
+* Result objects can be very easily returned early using `?` and supports matchable reason
 * For loops without `&` are consuming alternative `for &i in &v`
 * `do_something(xyz: TYPE)` vs `do_something(xyz: &TYPE)`
     * First one takes the ownership - This could be useful if the function requires ownership (like saving it) or if it
@@ -77,9 +129,8 @@ Then you can find the executable in the `target/release` directory
       performance. Otherwise, a clone needs to be issued explicitly.
     * Second one temporarily borrows a reference to the variable until the function is finished
 * Great tools
-    * Clippy (`cargo clippy`) - Like `findbugs` finds potential issues
+    * Clippy (`cargo clippy`) - Like `findbugs` finds potential issues and runs `cargo check` for compile time errors
     * Fmt (`cargo fmt`) - Formatter
-    * Check (`cargo check`) - Compile check
     * Documentation testing
 * AsRef for cheap conversions
 * Building arrays at compile time is only possible with `const fn`, but it forbids a lot of things like for
@@ -88,62 +139,52 @@ Then you can find the executable in the `target/release` directory
 
 ### Discovered optimizations
 
-* Build with release tag `cargo build --release`
+* Build with release tag `cargo build --release` has massive impact
+* Collecting data and then parallelize could improve performance
+    * Ex: Collect all data in-memory, chunk data and then run in parallel (like
+      with [rayon](https://github.com/rayon-rs/rayon))
+    * Benchmarks here showed that the overhead of communication (incl. sending only a few data) can be big
+      (i.e. pipelining)
+* Sometimes sequential processing could be faster due data inside the cache
+* Drop allocations or copies and re-use variables if it's critical for you
+    * `format!` allocates a new string
+* SIMD can easily improve performance if you're dealing with
+    * However, they have to fit in the supported registers exactly (i.e. u8 * 32), otherwise they need to be resized
+    * Different architecture - independent vertical operations on each u8
+    * Performance could vary depending on the compiler settings
+      (`target-cpu=native` and LTO had very negative influence)
 
 #### CSV Crate suggestions
 
-* Drop UTF-8 decoding if not necessary
-    * Use `ByteRecord`s
+* Drop UTF-8 decoding if not necessary (`ByteRecord`)
 * Drop per line/record allocations - Try to re-use them
     * Applies to BuffLines as well for records in csv
 * Use borrowed data instead of owned data, because later often requires copy
     * Ex: For example: `&'a str` for records
 
----
-
-https://llogiq.github.io/2017/06/01/perf-pitfalls.html
+#### Pitfalls
 
 * Standard I/O is unbuffered - use buffered if applicable
 * Use `target-cpu=native` to leverage specific optimizations - however experiences may differ
 * Reduce UTF-8 and line allocations - see above
-* Use a custom hasher if it fits your data
+* Use a custom hasher if it fits your data (like FX)
 * `println!` performs a lock on each all call
 * Iterate rather than an index loop
-* Avoid collect in intermediate variables
+* Avoid collect into intermediate variables
 * Static values could use arrays instead of `Vec<T>`
-* Use slices instead of vec
 * mem::replace when switching values
 * Keep attention to passing closures vs invoking them directly
     * Ex: Mapping to a default value
 
----
+Source https://llogiq.github.io/2017/06/01/perf-pitfalls.html
 
-https://www.scylladb.com/2017/10/05/io-access-methods-scylla/
+#### Read/Memmap/DIO
 
 * Memory mapping is expensive to open, but for big files worth it
 * No copies from kernel space to user space
+* Reduce the number of page files
+* User vs Kernel caching
 * Hides I/O behind page faults
 * Other process could write to the file or page -> causing unsafe behavior
 
----
-
-* SIMD can easily improve performance if you're dealing with
-    * However, they have to fit in the supported registers exactly (i.e. u8 * 32), otherwise they need to be resized
-    * Nevertheless, the performance could vary a lot depending on the compiler settings * In this
-      instance `target-cpu=native` was slower than `target-cpu=x86-64` in both SIMD and normal mode * Even LTO caused a
-      negative effect, although reducing the codegen size actually helped
-
-* Use channels and parallel threads for computation if partitioning is possible
-* Performance through `cargo build --release` is huge
-* Drop string parsing if possible like csv - `ByteRecords`
-* Optimize CPU usage
-    * Keep `syscalls` to a minimum
-    * Process close to data
-    * Cache friendly usage and fewer allocations
-* Drop allocations or copies as much as possible
-    * Re-use csv records if possible including not yet serialized data
-        * Better to use read_record into an existing `StringRecord`/`ByteRecord` and then call deserialize
-    * Rust often uses in-place modifications - therefore
-        * `format!` allocates a new string
-        * `Reader.lines() allocates a new string
-        * `String` is owned - while `&str` is borrowed and lifetimes have to keep updated
+Source: https://www.scylladb.com/2017/10/05/io-access-methods-scylla/
