@@ -8,7 +8,7 @@ use std::{
     thread,
 };
 
-use crossbeam_channel::{bounded, Receiver, Sender, SendError};
+use crossbeam_channel::{bounded, Receiver, Sender};
 use ring::digest::{digest, Digest, SHA1_FOR_LEGACY_USE_ONLY};
 use secstr::SecStr;
 use serde::Deserialize;
@@ -54,7 +54,8 @@ impl Display for SavedHash {
     }
 }
 
-pub fn collect_hashes(password_reader: csv::Reader<impl Read>) -> Result<Vec<SavedHash>, ()> {
+pub fn collect_hashes(password_reader: csv::Reader<impl Read>)
+                      -> Result<Vec<SavedHash>, csv::Error> {
     let threads = num_cpus::get();
     println!("Started {} hashing threads", threads);
 
@@ -72,9 +73,11 @@ pub fn collect_hashes(password_reader: csv::Reader<impl Read>) -> Result<Vec<Sav
                     // url, username gets moved in here
                     url: in_record.url,
                     username: in_record.username,
+                    // Safety: safe, because sha-1 should fit into an array with that size
                     password_hash: hash.try_into().unwrap(),
                 };
 
+                // unexpected channel disconnect -> should panic
                 local_done.send(record).unwrap();
             }
 
@@ -87,7 +90,7 @@ pub fn collect_hashes(password_reader: csv::Reader<impl Read>) -> Result<Vec<Sav
     drop(done);
 
     // read passwords on the current thread and wait until the receivers are finished
-    read_passwords(tx, password_reader).unwrap();
+    read_passwords(tx, password_reader)?;
 
     // detect when all done channels are dropped this loop breaks
     Ok(quit.iter().collect())
@@ -103,13 +106,14 @@ struct SavedPassword {
 fn read_passwords(
     tx: Sender<SavedPassword>,
     mut file_reader: csv::Reader<impl Read>,
-) -> Result<(), SendError<SavedPassword>> {
-    let headers = file_reader.headers().unwrap().clone();
+) -> Result<(), csv::Error> {
+    let headers = file_reader.headers()?.clone();
 
     let mut buffer = csv::StringRecord::new();
-    while file_reader.read_record(&mut buffer).unwrap() {
-        let record: SavedPassword = buffer.deserialize(Some(&headers)).unwrap();
-        tx.send(record)?;
+    while file_reader.read_record(&mut buffer)? {
+        let record: SavedPassword = buffer.deserialize(Some(&headers))?;
+        // Safety: unexpected channel disconnect should panic
+        tx.send(record).unwrap();
     }
 
     Ok(())

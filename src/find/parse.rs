@@ -3,9 +3,9 @@ use std::num::ParseIntError;
 
 use data_encoding::HEXUPPER;
 
-use crate::SHA1_BYTE_LENGTH;
 use crate::find::HashPadded;
 use crate::find::parse::ParseHashError::{IntError, InvalidFormat};
+use crate::SHA1_BYTE_LENGTH;
 
 #[derive(Debug, Default)]
 pub struct PwnedHash {
@@ -58,6 +58,7 @@ impl PwnedHash {
             // use Ok(..?) to make use of the automatic error convert instead of map_err
             .and_then(|s| Ok(s.parse()?));
 
+        // unwrap is safe here, because just saved the data with some
         self.count = Some(res);
         self.count.as_ref().unwrap()
     }

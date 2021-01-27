@@ -83,6 +83,8 @@ pub fn fadvise(file: &File, offset: i64, length: Option<i64>, advice: FileAdvice
 
     let fd = file.as_raw_fd();
     let res = unsafe { libc::posix_fadvise(fd, offset, length.unwrap_or(0), advice as i32) };
+
+    // Safety: programming mistakes should panic instead of return an error
     match res {
         0 => Ok(()),
         libc::EBADF => Err(FAdviseError::EBADF),
@@ -90,7 +92,7 @@ pub fn fadvise(file: &File, offset: i64, length: Option<i64>, advice: FileAdvice
         libc::ESPIPE => Err(FAdviseError::ESPIPE),
         err => Err(FAdviseError::Unknown(err)),
     }
-    .unwrap()
+        .unwrap()
 }
 
 #[cfg(unix)]

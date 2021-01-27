@@ -1,11 +1,7 @@
 use std::{fs::File, io::Read};
-use std::convert::TryInto;
 
 use clap::{App, Arg, crate_description, crate_name, crate_version};
-use data_encoding::HEXUPPER;
 use ring::digest::SHA1_OUTPUT_LEN;
-
-use crate::collect::SavedHash;
 
 const PASSWORD_KEY: &str = "passwords_file";
 const HASH_KEY: &str = "hash_file";
@@ -58,16 +54,24 @@ fn create_cli_options<'help>() -> App<'help> {
 }
 
 fn run(password_reader: csv::Reader<impl Read>, hash_file: File) {
-    let mut hashes = collect::collect_hashes(password_reader).unwrap();
-    println!("Finished hashing");
+    match collect::collect_hashes(password_reader) {
+        Ok(mut hashes) => {
+            println!("Finished hashing");
 
-    // unstable is slightly faster than the normal search - we don't care about mixed equal
-    // entries so lets use this
-    hashes.sort_unstable();
-    println!("Sorted");
+            // unstable is slightly faster than the normal search - we don't care about mixed equal
+            // entries so lets use this
+            hashes.sort_unstable();
+            println!("Sorted");
 
-    find::find_hash(&hash_file, &hashes);
-    println!("Finished");
+            match find::find_hash(&hash_file, &hashes) {
+                Ok(()) => println!("Finished"),
+                Err(err) => eprintln!("Aborted: {}", err)
+            };
+        },
+        Err(err) => {
+            eprintln!("Failed parse saved passwords: {:?}", err);
+        }
+    };
 }
 
 mod collect;

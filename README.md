@@ -23,10 +23,6 @@ Feedback appreciated.
 * SIMD comparisons
 * `fadvise` and `madvise` for unix based systems
 
-## ToDo
-
-* Properly structure it using error objects (removing `unwrap`)
-
 ## Password recommendations
 
 * Use unique passwords for each account
