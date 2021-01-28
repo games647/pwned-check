@@ -15,8 +15,8 @@ Feedback appreciated.
 Passwords are exported using the browser. This tool reads the csv then in sequential order and submits the records to a
 queue. This queue will hash the passwords in parallel based on the number of cores. Here an allocation is required for
 each record, because we use keep all data in memory. Currently, it uses channel communication. However, benchmarks
-seems to indicate that it's faster (likely due to chunking) to collect the passwords first sequentially and then 
-parallelize over all data. Nevertheless, this part should only have a minimal effect, because the hash database is 
+seems to indicate that it's faster (likely due to chunking) to collect the passwords first sequentially and then
+parallelize over all data. Nevertheless, this part should only have a minimal effect, because the hash database is
 larger. Therefore, optimizing the comparisons are more important.
 
 The records are then sorted according to their hash to be used later. Meanwhile, the plain-text password will be
@@ -26,7 +26,9 @@ dropped.
 
 The hash database file is then read using ASCII characters to skip UTF-8 parsing. Afterwards, the hashes are compared
 using SIMD. Using their lexicographically order, we reduce the number of multiple comparisons. Internally this will
-use [`eq` and `gt`](https://github.com/rust-lang/packed_simd/blob/f14f6911b277a0f4522eab03db222ee363c6d6d0/src/api/cmp/partial_ord.rs#L19).
+use [`eq` and
+`gt`](https://github.com/rust-lang/packed_simd/blob/f14f6911b277a0f4522eab03db222ee363c6d6d0/src/api/cmp/partial_ord.rs#L19).
+Only if the hash is found the number of pwned hash is evaluated lazily.
 
 ## Features
 
@@ -69,7 +71,7 @@ Then you can find the executable in the `target/release` directory
    expects the list to be sorted by hash for better efficiency and to have only SHA-1 hashes.
 2. Unpack the downloaded file
 2. Export your existing passwords somewhere safe.
-    * **Warning**: A persistent storage isn't a good idea, because the file could be restored even if deleted. You 
+    * **Warning**: A persistent storage isn't a good idea, because the file could be restored even if deleted. You
       could store it in memory (ex: Linux in /tmp depending on the permissions) and delete it later (`shred`). Even
       then other applications or users could access it. For later make sure, only you have read permission.
     * Firefox: Open `about:logins` and click the three `horizontal` dots. There you can export logins.
