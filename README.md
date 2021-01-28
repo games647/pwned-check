@@ -14,7 +14,10 @@ Feedback appreciated.
 
 Passwords are exported using the browser. This tool reads the csv then in sequential order and submits the records to a
 queue. This queue will hash the passwords in parallel based on the number of cores. Here an allocation is required for
-each record, because we use keep all data in memory.
+each record, because we use keep all data in memory. Currently, it uses channel communication. However, benchmarks
+seems to indicate that it's faster (likely due to chunking) to collect the passwords first sequentially and then 
+parallelize over all data. Nevertheless, this part should only have a minimal effect, because the hash database is 
+larger. Therefore, optimizing the comparisons are more important.
 
 The records are then sorted according to their hash to be used later. Meanwhile, the plain-text password will be
 dropped.
@@ -23,15 +26,14 @@ dropped.
 
 The hash database file is then read using ASCII characters to skip UTF-8 parsing. Afterwards, the hashes are compared
 using SIMD. Using their lexicographically order, we reduce the number of multiple comparisons. Internally this will
-use [`eq` and `gt`](https://github.com/rust-lang/packed_simd/blob/f14f6911b277a0f4522eab03db222ee363c6d6d0/src/api/cmp/partial_ord.rs#L19)
-.
-
+use [`eq` and `gt`](https://github.com/rust-lang/packed_simd/blob/f14f6911b277a0f4522eab03db222ee363c6d6d0/src/api/cmp/partial_ord.rs#L19).
 
 ## Features
 
 * Offline
 * Cross-platform
 * Clear read passwords from memory
+* Progressbar
 
 ### Optimizations
 
@@ -64,9 +66,10 @@ Then you can find the executable in the `target/release` directory
 1. Download the database from https://haveibeenpwned.com/Passwords (Torrent recommended for reduced load). This tool
    expects the list to be sorted by hash for better efficiency and to have only SHA-1 hashes.
 2. Unpack the downloaded file
-2. Export your existing passwords somewhere safe. **Note**: A persistent storage isn't a good idea, because the file
-   could be restored even if deleted. You could store it in memory (ex: Linux in /tmp depending on the permissions) and 
-   delete it later (`shred`).
+2. Export your existing passwords somewhere safe.
+    * **Warning**: A persistent storage isn't a good idea, because the file could be restored even if deleted. You 
+      could store it in memory (ex: Linux in /tmp depending on the permissions) and delete it later (`shred`). Even
+      then other applications or users could access it. For later make sure, only you have read permission.
     * Firefox: Open `about:logins` and click the three `horizontal` dots. There you can export logins.
     * Chromium: Open `chrome://settings/passwords` and click the three `vertical` dots on the right side to export it
 3. Run the executable of this project with the following usage:
@@ -74,9 +77,10 @@ Then you can find the executable in the `target/release` directory
 > pwned-check <EXPORTED_CSV> <DOWNLOADED_HASH_TXT> [-v]
 
 ```
-pwned-check password.csv pwned-passwords-sha1-ordered-by-hash-v7.txt -v
-987.70 MB / 25.18 GB [=>----------------------------------] 3.83 % 493.84 MB/s 50s 
+./pwned-check password.csv pwned-passwords-sha1-ordered-by-hash-v7.txt -v
+987.70 MB / 25.18 GB [=>----------------------------------] 3.83 % 493.84 MB/s 50s
 Your password for the following account USERNAME@WEBSITE has been pwned 25x times
+...
 3.36 GB / 25.18 GB [======>-----------------------------] 13.32 % 490.78 MB/s 46s
 ...
 104.71 MB/s Finished

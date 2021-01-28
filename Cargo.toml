@@ -12,6 +12,7 @@ edition = "2018"
 readme = "README.md"
 
 [dependencies]
+# Logging API - in this case used for macro verbose logging
 log = { version = "0.4", features = ["std"] }
 
 # Support for SIMD instructions
