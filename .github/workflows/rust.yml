@@ -32,7 +32,7 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-key: ${{ runner.os }}-cargo
+          restore-keys: ${{ runner.os }}-cargo
 
       # Build
       - name: Build
