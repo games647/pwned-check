@@ -88,6 +88,58 @@ Your password for the following account USERNAME@WEBSITE has been pwned 25x time
 104.71 MB/s Finished
 ```
 
+## Discovered optimizations
+
+* Build with release tag `cargo build --release` has massive impact
+* Collecting data and then parallelize could improve performance
+    * Ex: Collect all data in-memory, chunk data and then run in parallel (like
+      with [rayon](https://github.com/rayon-rs/rayon))
+    * Benchmarks here showed that the overhead of communication (incl. sending only a few data) can be big
+      (i.e. pipelining)
+* Sometimes sequential processing could be faster due data inside the cache
+* Drop allocations or copies and re-use variables if it's critical for you
+    * `format!` allocates a new string
+* SIMD can easily improve performance if you're dealing with
+    * However, they have to fit in the supported registers exactly (i.e. u8 * 32), otherwise they need to be resized
+    * Different architecture - independent vertical operations on each u8
+    * Performance could vary depending on the compiler settings
+      (`target-cpu=native` and LTO had very negative influence)
+
+### CSV Crate Suggestions
+
+* Drop UTF-8 decoding if not necessary (`ByteRecord`)
+* Drop per line/record allocations - Try to re-use them
+    * Applies to BuffLines as well for records in csv
+* Use borrowed data instead of owned data, because later often requires copy
+    * Ex: For example: `&'a str` for records
+
+### Pitfalls
+
+* Standard I/O is unbuffered - use buffered if applicable
+* Use `target-cpu=native` to leverage specific optimizations - however experiences may differ
+* Reduce UTF-8 and line allocations - see above
+* Use a custom hasher if it fits your data (like FX)
+* `println!` performs a lock on each all call
+* Iterate rather than an index loop
+* Avoid collect into intermediate variables
+* Static values could use arrays instead of `Vec<T>`
+* mem::replace when switching values
+* Keep attention to passing closures vs invoking them directly
+    * Ex: Mapping to a default value
+
+Source https://llogiq.github.io/2017/06/01/perf-pitfalls.html
+
+### Read/Memory Map/DIO
+
+* Memory mapping is expensive to open, but for big files worth it
+* No copies from kernel space to user space
+* Reduce the number of page files
+* User vs Kernel caching
+* Hides I/O behind page faults
+* Other process could write to the file or page -> causing unsafe behavior
+
+Source: https://www.scylladb.com/2017/10/05/io-access-methods-scylla/
+
 ## Further optimizations
 
 All this requires benchmarking first.
@@ -145,55 +197,3 @@ the data. As said [before](#Index), this doesn't seem practical here.
 * Building arrays at compile time is only possible with `const fn`, but it forbids a lot of things like for
     * Code generation with `build.rs` is also possible, but complicated
     * Alternative: Crates like `init_with`
-
-## Discovered optimizations
-
-* Build with release tag `cargo build --release` has massive impact
-* Collecting data and then parallelize could improve performance
-    * Ex: Collect all data in-memory, chunk data and then run in parallel (like
-      with [rayon](https://github.com/rayon-rs/rayon))
-    * Benchmarks here showed that the overhead of communication (incl. sending only a few data) can be big
-      (i.e. pipelining)
-* Sometimes sequential processing could be faster due data inside the cache
-* Drop allocations or copies and re-use variables if it's critical for you
-    * `format!` allocates a new string
-* SIMD can easily improve performance if you're dealing with
-    * However, they have to fit in the supported registers exactly (i.e. u8 * 32), otherwise they need to be resized
-    * Different architecture - independent vertical operations on each u8
-    * Performance could vary depending on the compiler settings
-      (`target-cpu=native` and LTO had very negative influence)
-
-### CSV Crate suggestions
-
-* Drop UTF-8 decoding if not necessary (`ByteRecord`)
-* Drop per line/record allocations - Try to re-use them
-    * Applies to BuffLines as well for records in csv
-* Use borrowed data instead of owned data, because later often requires copy
-    * Ex: For example: `&'a str` for records
-
-### Pitfalls
-
-* Standard I/O is unbuffered - use buffered if applicable
-* Use `target-cpu=native` to leverage specific optimizations - however experiences may differ
-* Reduce UTF-8 and line allocations - see above
-* Use a custom hasher if it fits your data (like FX)
-* `println!` performs a lock on each all call
-* Iterate rather than an index loop
-* Avoid collect into intermediate variables
-* Static values could use arrays instead of `Vec<T>`
-* mem::replace when switching values
-* Keep attention to passing closures vs invoking them directly
-    * Ex: Mapping to a default value
-
-Source https://llogiq.github.io/2017/06/01/perf-pitfalls.html
-
-### Read/Memory map/DIO
-
-* Memory mapping is expensive to open, but for big files worth it
-* No copies from kernel space to user space
-* Reduce the number of page files
-* User vs Kernel caching
-* Hides I/O behind page faults
-* Other process could write to the file or page -> causing unsafe behavior
-
-Source: https://www.scylladb.com/2017/10/05/io-access-methods-scylla/
