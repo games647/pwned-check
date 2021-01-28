@@ -23,9 +23,21 @@ jobs:
     steps:
       # Pull repo
       - uses: actions/checkout@v2
+
+      # Cache compilation
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-key: ${{ runner.os }}-cargo
+
       # Build
       - name: Build
         run: cargo build --verbose
+
       # Unit Tests
       - name: Run tests
         run: cargo test --verbose
