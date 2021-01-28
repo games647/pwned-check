@@ -1,2 +1,3 @@
 # Overrride toolchain to nightly for SIMD usage
-nightly
+[toolchain]
+channel = "nightly"
