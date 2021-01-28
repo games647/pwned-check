@@ -55,6 +55,8 @@ use [`eq` and `gt`](https://github.com/rust-lang/packed_simd/blob/f14f6911b277a0
 
 ## Installation
 
+Requires Rust nightly (due to SIMD usage).
+
 > git clone REPOSITORY_URL
 
 > cargo build --release
