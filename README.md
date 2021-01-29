@@ -8,6 +8,25 @@ Small application to scan exported passwords from chromium or Firefox against th
 This project is also intended for learning Rust (incl. parallelism with channel communication) and its ecosystem.
 Feedback appreciated.
 
+### Features
+
+* Scans the file sequentially in <5min (HDD + cold cache)
+* Offline
+* Cross-platform
+* Clear read passwords from memory
+* Progressbar
+* Optimized for bulk searches
+
+#### Optimizations
+
+* Multi-Threaded hashing of stored passwords
+* Memory mapping if supported
+* Sorted linear search by using lexicographically order of the downloaded hash database
+* SIMD comparisons
+* Read hash database from ASCII
+* Re-use allocations if possible - for example database reading only uses borrowed data
+* `fadvise` and `madvise` for UNIX based systems
+
 ### Design
 
 #### Load saved passwords
@@ -29,23 +48,6 @@ using SIMD. Using their lexicographically order, we reduce the number of multipl
 use [`eq` and
 `gt`](https://github.com/rust-lang/packed_simd/blob/f14f6911b277a0f4522eab03db222ee363c6d6d0/src/api/cmp/partial_ord.rs#L19).
 Only if the hash is found the number of pwned hash is evaluated lazily.
-
-## Features
-
-* Offline
-* Cross-platform
-* Clear read passwords from memory
-* Progressbar
-
-### Optimizations
-
-* Multi-Threaded hashing of stored passwords
-* Memory mapping if supported
-* Sorted linear search by using lexicographically order of the downloaded hash database
-* SIMD comparisons
-* Read hash database from ASCII
-* Re-use allocations if possible - for example database reading only uses borrowed data
-* `fadvise` and `madvise` for UNIX based systems
 
 ## Password recommendations
 
@@ -120,7 +122,7 @@ Your password for the following account USERNAME@WEBSITE has been pwned 25x time
 * Standard I/O is unbuffered - use buffered if applicable
 * Use `target-cpu=native` to leverage specific optimizations - however experiences may differ
 * Reduce UTF-8 and line allocations - see above
-* Use a custom hasher if it fits your data (like FX)
+* Use a custom hasher if it fits your data (like FX) or Indexmap
 * `println!` performs a lock on each all call
 * Iterate rather than an index loop
 * Avoid collect into intermediate variables
