@@ -2,8 +2,10 @@
 
 ## Description
 
-Small application to scan exported passwords from chromium or Firefox against the offline hash database from
-[haveibeenpwned](https://haveibeenpwned.com) in order to verify if any password is exposed.
+Small application to scan exported passwords from your password storage against the offline hash database from
+[haveibeenpwned](https://haveibeenpwned.com) in order to verify if any password is exposed. It includes many 
+performance features, making the scan very fast **without needing any intermediate conversion** of the original hash
+database file. Using that it would make it even faster (See [Index](#Index)).
 
 This project is also intended for learning Rust (incl. parallelism with channel communication) and its ecosystem.
 Feedback appreciated.
