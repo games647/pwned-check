@@ -8,8 +8,10 @@ use pbr::{ProgressBar, Units};
 
 use crate::{collect::SavedHash, find::parse::PwnedHash, SHA1_BYTE_LENGTH};
 
-mod advise;
 mod parse;
+
+#[cfg(unix)]
+mod advise;
 
 const SIMD_WIDTH: usize = 32;
 

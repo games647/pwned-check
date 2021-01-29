@@ -1,7 +1,6 @@
 use std::{fs::File, io};
 
 /// Memory mapped advise type
-#[cfg(unix)]
 #[repr(i32)]
 #[allow(dead_code)]
 pub enum MemoryAdvice {
@@ -31,7 +30,6 @@ pub enum MemoryAdvice {
 ///  let ptr = mmap.as_ptr() as *mut u8;
 /// madvise(ptr, 0, 8, MemoryAdvice::Sequential);
 /// ```
-#[cfg(unix)]
 pub fn madvise<T>(ptr: *mut T, len: usize, advice: MemoryAdvice) -> Result<(), io::Error> {
     assert!(!ptr.is_null());
 
@@ -46,7 +44,6 @@ pub fn madvise<T>(ptr: *mut T, len: usize, advice: MemoryAdvice) -> Result<(), i
 }
 
 /// File advise type
-#[cfg(unix)]
 #[repr(i32)]
 #[allow(dead_code)]
 pub enum FileAdvice {
@@ -76,7 +73,6 @@ pub enum FileAdvice {
 /// let file = File::open(file!());
 /// fadvise(file, 0, None, Advice::Sequential);
 /// ```
-#[cfg(unix)]
 pub fn fadvise(file: &File, offset: i64, length: Option<i64>, advice: FileAdvice) {
     use std::os::unix::io::AsRawFd;
 
@@ -94,7 +90,6 @@ pub fn fadvise(file: &File, offset: i64, length: Option<i64>, advice: FileAdvice
     .unwrap()
 }
 
-#[cfg(unix)]
 #[derive(Debug)]
 enum FAdviseError {
     /// No valid file descriptor
@@ -107,7 +102,6 @@ enum FAdviseError {
     Unknown(i32),
 }
 
-#[cfg(unix)]
 #[cfg(test)]
 mod test {
     use std::{os::unix::io::FromRawFd, panic, ptr};
