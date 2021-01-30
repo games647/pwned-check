@@ -60,8 +60,7 @@ fn find_hash_mapped(map: &Mmap, hash_file: &File, hashes: &[SavedHash]) -> Resul
 
         // Safety: unsafe cast to mutable - however madvise seems to not change any data
         let ptr = map.as_ptr() as *mut u8;
-        let len = map.len();
-        if let Err(err) = advise::madvise(ptr, len, MemoryAdvice::Sequential) {
+        if let Err(err) = advise::madvise(ptr, map.len(), MemoryAdvice::Sequential) {
             error!(
                 "Failed to advise OS about memory usage - continuing without it {}",
                 err
@@ -71,8 +70,7 @@ fn find_hash_mapped(map: &Mmap, hash_file: &File, hashes: &[SavedHash]) -> Resul
 
     // blocking - help the compiler with the type
     let data: &[u8] = &map;
-    let len = map.len() as u64;
-    find_hash_incrementally(data, len, hashes)?;
+    find_hash_incrementally(data, map.len() as u64, hashes)?;
 
     if did_change {
         if let Err(err) = set_readonly(hash_file, false) {

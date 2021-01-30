@@ -1,4 +1,5 @@
-use std::{fs::File, io};
+use std::{fs::File, io, fmt};
+use std::error::Error;
 
 /// Memory mapped advise type
 #[repr(i32)]
@@ -101,6 +102,14 @@ enum FAdviseError {
     /// Unexpected integer return value
     Unknown(i32),
 }
+
+impl fmt::Display for FAdviseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Error for FAdviseError {}
 
 #[cfg(test)]
 mod test {

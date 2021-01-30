@@ -1,4 +1,9 @@
-use std::{convert::TryFrom, num::ParseIntError};
+use std::{
+    convert::TryFrom,
+    num::ParseIntError,
+    fmt,
+    error::Error,
+};
 
 use data_encoding::HEXUPPER;
 
@@ -71,6 +76,21 @@ impl PwnedHash {
 pub enum ParseHashError {
     IntError(ParseIntError),
     InvalidFormat(),
+}
+
+impl fmt::Display for ParseHashError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Error for ParseHashError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            IntError(source) => Some(source),
+            _ => None
+        }
+    }
 }
 
 // automatically convert ParseIntError in our custom enum type IntError
