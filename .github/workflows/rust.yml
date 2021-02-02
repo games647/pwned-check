@@ -39,5 +39,7 @@ jobs:
         run: cargo build --verbose
 
       # Unit Tests
+      # Use colors for test output too, not only for cargo itself specified by the environment variable
+      # See: https://github.com/rust-lang/cargo/issues/1983
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test --verbose -- --color always
