@@ -1,9 +1,4 @@
-use std::{
-    convert::TryFrom,
-    num::ParseIntError,
-    fmt,
-    error::Error,
-};
+use std::{convert::TryFrom, error::Error, fmt, num::ParseIntError};
 
 use data_encoding::HEXUPPER;
 
@@ -41,7 +36,7 @@ impl PwnedHash {
     }
 
     pub fn parse_new_hash(&mut self, line: &[u8]) -> Result<(), ParseHashError> {
-        assert!(&[line[40]] == b":");
+        assert_eq!(&[line[40]], b":");
 
         let hash_part = &line[..40];
         let len = HEXUPPER
@@ -88,7 +83,7 @@ impl Error for ParseHashError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             IntError(source) => Some(source),
-            _ => None
+            _ => None,
         }
     }
 }

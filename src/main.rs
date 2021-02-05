@@ -117,10 +117,9 @@ mod test {
     fn test_missing_file() {
         let args = ["pwned-check", "file.txt"];
         let matches = create_cli_options().try_get_matches_from(&args);
-
-        assert!(!matches.is_ok(), "CLI parse result {:?}", matches);
+        assert_matches!(matches, Err(_));
 
         let matches = create_cli_options().try_get_matches_from(&args[..1]);
-        assert!(!matches.is_ok(), "CLI parse result {:?}", matches);
+        assert_matches!(matches, Err(_));
     }
 }

@@ -1,5 +1,4 @@
-use std::{fs::File, io, fmt};
-use std::error::Error;
+use std::{error::Error, fmt, fs::File, io};
 
 /// Memory mapped advise type
 #[repr(i32)]
@@ -128,13 +127,11 @@ mod test {
     }
 
     #[test]
-    fn madvise_success() {
+    fn madvise_success() -> Result<(), io::Error> {
         let mmap = MmapOptions::new().len(8).map_anon().unwrap();
         let ptr = mmap.as_ptr() as *mut u8;
-        let _result = madvise(ptr, 8, MemoryAdvice::DontNeed);
 
-        let expected: Result<(), io::Error> = Ok(());
-        assert_matches!(expected, _result);
+        madvise(ptr, 8, MemoryAdvice::DontNeed)
     }
 
     #[test]
