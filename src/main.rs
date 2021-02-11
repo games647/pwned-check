@@ -88,6 +88,7 @@ mod logger;
 #[cfg(test)]
 mod test {
     use super::*;
+    use assert_matches::assert_matches;
 
     #[test]
     fn test_parse() {

@@ -1,4 +1,4 @@
-use std::{error::Error, fmt, fs::File, io};
+use std::{error::Error, fmt, fs::File, io, num::NonZeroI64, os::unix::io::AsRawFd};
 
 /// Memory mapped advise type
 #[repr(i32)]
@@ -73,11 +73,12 @@ pub enum FileAdvice {
 /// let file = File::open(file!());
 /// fadvise(file, 0, None, Advice::Sequential);
 /// ```
-pub fn fadvise(file: &File, offset: i64, length: Option<i64>, advice: FileAdvice) {
-    use std::os::unix::io::AsRawFd;
+pub fn fadvise(file: &File, offset: i64, length: Option<NonZeroI64>, advice: FileAdvice) {
+    // Option<NonZero> is memory optimized
 
     let fd = file.as_raw_fd();
-    let res = unsafe { libc::posix_fadvise(fd, offset, length.unwrap_or(0), advice as i32) };
+    let length = length.map_or(0, NonZeroI64::get);
+    let res = unsafe { libc::posix_fadvise(fd, offset, length, advice as i32) };
 
     // Safety: programming mistakes should panic instead of return an error
     match res {
@@ -91,6 +92,7 @@ pub fn fadvise(file: &File, offset: i64, length: Option<i64>, advice: FileAdvice
 }
 
 #[derive(Debug)]
+#[allow(clippy::upper_case_acronyms)]
 enum FAdviseError {
     /// No valid file descriptor
     EBADF,
