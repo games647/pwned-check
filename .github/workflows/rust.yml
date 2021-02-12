@@ -15,7 +15,7 @@ env:
 
 jobs:
   # Job id
-  build:
+  build_and_test:
 
     # Environment image
     runs-on: ubuntu-latest
