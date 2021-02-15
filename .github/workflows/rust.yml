@@ -15,7 +15,7 @@ env:
 
 jobs:
   # Job id
-  build_and_test:
+  lint_and_test:
 
     # Environment image
     runs-on: ubuntu-latest
@@ -34,9 +34,9 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo
 
-      # Build
-      - name: Build
-        run: cargo build --verbose
+      # Use clippy for linting with the debug profile for faster compilation
+      - name: Lint
+        run: cargo clippy
 
       # Unit Tests
       # Use colors for test output too, not only for cargo itself specified by the environment variable
