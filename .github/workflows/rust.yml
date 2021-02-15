@@ -35,10 +35,8 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo
 
       # Use clippy for linting with the debug profile for faster compilation
-      - name: lint
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Lint
+        run: cargo clippy
 
       # Unit Tests
       # Use colors for test output too, not only for cargo itself specified by the environment variable
