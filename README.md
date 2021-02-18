@@ -3,7 +3,7 @@
 ## Description
 
 Small application to scan exported passwords from your password storage against the offline hash database from
-[haveibeenpwned](https://haveibeenpwned.com) in order to verify if any password is exposed. It includes many 
+[haveibeenpwned](https://haveibeenpwned.com) in order to verify if any passwords are exposed. It includes many
 performance features, making the scan very fast **without needing any intermediate conversion** of the original hash
 database file. Using that it would make it even faster (See [Index](#Index)).
 
@@ -12,7 +12,7 @@ Feedback appreciated.
 
 ### Features
 
-* Scans the file sequentially in <5min (HDD + cold cache)
+* Scans the complete file (27 GiB cold cache) sequentially in < 5min (HDD) or ~ 1 min (SATA-SSD)
 * Offline
 * Cross-platform
 * Clear read passwords from memory
@@ -124,7 +124,7 @@ Your password for the following account USERNAME@WEBSITE has been pwned 25x time
 * Standard I/O is unbuffered - use buffered if applicable
 * Use `target-cpu=native` to leverage specific optimizations - however experiences may differ
 * Reduce UTF-8 and line allocations - see above
-* Use a custom hasher if it fits your data (like FX) or Indexmap
+* Use a custom hasher if it fits your data (like FX) or `Indexmap`
 * `println!` performs a lock on each all call
 * Iterate rather than an index loop
 * Avoid collect into intermediate variables
@@ -203,3 +203,31 @@ the data. As said [before](#Index), this doesn't seem practical here.
 * Building arrays at compile time is only possible with `const fn`, but it forbids a lot of things like for
     * Code generation with `build.rs` is also possible, but complicated
     * Alternative: Crates like `init_with`
+
+## Compilation time optimizations
+
+**IF** it matters:
+
+* Less complex tools
+    * Macros
+    * Type checking
+    * Monomorphization
+    * LLVM optimizations
+    * Linking
+* Use `cargo check`
+* Rust Analyzer Instead Of Rust Language Server for syntax checks
+* Unused deps: `cargo install cargo-udeps && cargo +nightly udeps`
+* Update deps: `cargo outdated -wR`
+* Check duplicate deps: `cargo tree --duplicate`
+* Replace Heavy Dependencies like `clap`, `reqwests` or `serde`
+* Cargo workspaces
+* Integration tests in a single bin, because linking is slow
+* Disable features
+* Ramdisk for the `target` folder
+* `sccache` for the CI
+* Cranelift as an alternative testing compiler
+* Faster linker `lld` or `mold`? that is multi threaded
+* Compiler settings
+* Profile
+
+Source: https://endler.dev/2020/rust-compile-times/
