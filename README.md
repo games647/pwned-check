@@ -4,8 +4,8 @@
 
 Small application to scan exported passwords from your password storage against the offline hash database from
 [haveibeenpwned](https://haveibeenpwned.com) in order to verify if any passwords are exposed. It includes many
-performance features, making the scan very fast **without needing any intermediate conversion** of the original hash
-database file. Using that it would make it even faster (See [Index](#Index)).
+performance features, making the scan very fast **without needing any  index or intermediate conversion** of the
+original hash database file. Using that it would make it even faster (See [Index](#Index)) for multiple runs.
 
 This project is also intended for learning Rust (incl. parallelism with channel communication) and its ecosystem.
 Feedback appreciated.
@@ -28,6 +28,7 @@ Feedback appreciated.
 * Read hash database from ASCII
 * Re-use allocations if possible - for example database reading only uses borrowed data
 * `fadvise` and `madvise` for UNIX based systems
+* Lazily parse the count column in the database
 
 ### Design
 
@@ -154,7 +155,8 @@ All this requires benchmarking first.
 
 This tool is specifically designed for individuals. So the main use case is to do only a single run. There are tools
 like [csv-index](https://docs.rs/csv-index/) that could create an intermediate index over the data. This could be useful
-for concurrent access to the file.
+for concurrent access to the file or random file access than reading it sequential. However, it then takes additional
+time and space to calculate this index.
 
 ### Binary searching
 
