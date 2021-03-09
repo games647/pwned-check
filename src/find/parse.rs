@@ -99,7 +99,6 @@ impl From<ParseIntError> for ParseHashError {
 mod test {
     use std::convert::TryInto;
 
-    use assert_matches::assert_matches;
     use data_encoding::HEXUPPER;
 
     use crate::find::SIMD_WIDTH;

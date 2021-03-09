@@ -116,7 +116,6 @@ impl Error for FAdviseError {}
 mod test {
     use std::{os::unix::io::FromRawFd, panic, ptr};
 
-    use assert_matches::assert_matches;
     use memmap::MmapOptions;
 
     use super::*;

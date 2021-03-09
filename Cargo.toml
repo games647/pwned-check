@@ -67,9 +67,6 @@ features = ["color", "derive", "std", "cargo"]
 
 # Dependencies for dev environments like tests and benchmarks
 [dev-dependencies]
-# Allows asserting to patterns - in this case easier for using assert_eq with nightly APIs
-assert_matches = "1.4"
-
 # Benchmarking tool, because #[bench] is a nightly only feature at the moment
 # Source: https://doc.rust-lang.org/cargo/commands/cargo-bench.html
 criterion = "0.3"

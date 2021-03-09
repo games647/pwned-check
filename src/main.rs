@@ -1,3 +1,5 @@
+#![feature(assert_matches)]
+
 use std::{fs::File, io::Read};
 
 use clap::{crate_description, crate_name, crate_version, App, Arg};
@@ -88,7 +90,6 @@ mod logger;
 #[cfg(test)]
 mod test {
     use super::*;
-    use assert_matches::assert_matches;
 
     #[test]
     fn test_parse() {
